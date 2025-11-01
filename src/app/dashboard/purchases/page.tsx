@@ -190,11 +190,7 @@ export default function PurchasesPage() {
 
   const totalFilteredInstallmentAmount = useMemo(() => {
     return sortedAndFilteredPurchases.reduce((acc, purchase) => {
-      const remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
-      if (remainingInstallments > 0) {
-        return acc + purchase.installmentAmount;
-      }
-      return acc;
+      return acc + purchase.installmentAmount;
     }, 0);
   }, [sortedAndFilteredPurchases]);
 
