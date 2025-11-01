@@ -141,12 +141,25 @@ export default function PurchasesPage() {
       return;
     }
 
-    const rows = filteredPurchases.map(p => {
-      const cardName = getCard(p.cardId)?.name || 'N/A';
-      const progress = `${p.paidInstallments}/${p.totalInstallments}`;
-      const amount = formatCurrency(p.installmentAmount);
-      return `${cardName}\n${amount} --> ${p.description} --> ${progress}`;
+    // Group purchases by cardId
+    const groupedByCard = filteredPurchases.reduce((acc, p) => {
+      if (!acc[p.cardId]) {
+        acc[p.cardId] = [];
+      }
+      acc[p.cardId].push(p);
+      return acc;
+    }, {} as Record<string, PurchaseInstallment[]>);
+
+    const rows = Object.entries(groupedByCard).map(([cardId, purchases]) => {
+      const cardName = getCard(cardId)?.name || 'N/A';
+      const purchaseLines = purchases.map(p => {
+        const progress = `${p.paidInstallments}/${p.totalInstallments}`;
+        const amount = formatCurrency(p.installmentAmount);
+        return `${amount} --> ${p.description} --> ${progress}`;
+      }).join("\n");
+      return `${cardName}\n${purchaseLines}`;
     }).join("\n\n");
+
 
     const totalAmount = filteredPurchases.reduce((sum, p) => sum + p.installmentAmount, 0);
     const totalText = `\n\n--------------------\n${filteredPurchases.length} compras por ${formatCurrency(totalAmount)}`;
@@ -335,3 +348,4 @@ export default function PurchasesPage() {
       </AlertDialog>
     </>
   );
+}
