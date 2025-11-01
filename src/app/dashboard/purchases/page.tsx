@@ -190,7 +190,6 @@ export default function PurchasesPage() {
 
   const totalFilteredInstallmentAmount = useMemo(() => {
     return sortedAndFilteredPurchases.reduce((acc, purchase) => {
-      // Only include purchases that have started (paid installments > 0)
       if (purchase.paidInstallments > 0) {
         return acc + purchase.installmentAmount;
       }
@@ -217,6 +216,7 @@ export default function PurchasesPage() {
     }, {} as Record<string, PurchaseInstallment[]>);
 
     let totalAmountForExport = 0;
+    const allInProgressPurchases = sortedAndFilteredPurchases.filter(p => p.paidInstallments > 0);
 
     const rows = Object.entries(groupedByCard).map(([cardId, purchases]) => {
       const cardName = getCard(cardId)?.name || 'N/A';
@@ -245,7 +245,7 @@ export default function PurchasesPage() {
     }).join("\n\n");
 
     
-    const totalText = `\n\n--------------------\n${inProgressPurchases.length} compras por ${formatCurrency(totalAmountForExport)}`;
+    const totalText = `\n\n--------------------\n${allInProgressPurchases.length} compras por ${formatCurrency(totalAmountForExport)}`;
     
     const exportText = rows + totalText;
 
