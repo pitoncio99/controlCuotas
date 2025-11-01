@@ -18,6 +18,10 @@
           "type": "string",
           "description": "The email address of the person.",
           "format": "email"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the person's avatar image."
         }
       },
       "required": [
@@ -169,7 +173,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {

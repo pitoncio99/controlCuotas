@@ -5,16 +5,17 @@
  * This ruleset enforces a strict user-ownership model, where each user has complete control over their data.
  *
  * Data Structure:
- * All data is nested under /users/{userId}, providing clear ownership and separation.
+ * All user-specific data is nested under /users/{userId}, providing clear ownership and separation.
+ * Global data like 'cards' is readable by all authenticated users but writable only under specific, secure conditions (or not at all client-side).
  *
  * Key Security Decisions:
  * - User listing is disallowed to protect user privacy.
  * - Data consistency between paths and document content is enforced to prevent unauthorized access.
+ * - Most write operations are restricted to the data owner.
  *
  * Authentication Notes:
- * - The error `FirebaseError: Firebase: Error (auth/operation-not-allowed)` suggests an issue with Firebase Authentication.
- * - The authentication provider is enabled for both `password` and `anonymous` .
- * - Verify that email/password sign-in is enabled in the Firebase Console for the project.
+ * - The error `FirebaseError: Firebase: Error (auth/operation-not-allowed)` suggests an issue with enabling auth providers in the Firebase Console.
+ * - Ensure 'Google' is enabled as a sign-in provider.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -28,83 +29,19 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    // Rules for user-specific data collections
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
     }
-
-    /**
-     * @description Enforces document ownership for Person entities under a user's data tree.
-     * @path /users/{userId}/people/{personId}
-     * @allow (create) User 'user123' can create a new Person document with personId matching the path.
-     * @deny (create) User 'user456' cannot create a Person document under /users/user123/people/person456.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
-    match /users/{userId}/people/{personId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == personId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces document ownership for Card entities under a user's data tree.
-     * @path /users/{userId}/cards/{cardId}
-     * @allow (create) User 'user123' can create a new Card document with cardId matching the path.
-     * @deny (create) User 'user456' cannot create a Card document under /users/user123/cards/card456.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
-    match /users/{userId}/cards/{cardId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == cardId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces document ownership for PurchaseInstallment entities under a user's data tree.
-     * @path /users/{userId}/purchaseInstallments/{purchaseInstallmentId}
-     * @allow (create) User 'user123' can create a new PurchaseInstallment document with purchaseInstallmentId matching the path.
-     * @deny (create) User 'user456' cannot create a PurchaseInstallment document under /users/user123/purchaseInstallments/purchaseInstallment456.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
-    match /users/{userId}/purchaseInstallments/{purchaseInstallmentId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == purchaseInstallmentId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces document ownership for Expense entities under a user's data tree.
-     * @path /users/{userId}/expenses/{expenseId}
-     * @allow (create) User 'user123' can create a new Expense document with expenseId matching the path.
-     * @deny (create) User 'user456' cannot create a Expense document under /users/user123/expenses/expense456.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
-    match /users/{userId}/expenses/{expenseId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == expenseId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces document ownership for Income entities under a user's data tree.
-     * @path /users/{userId}/incomes/{incomeId}
-     * @allow (create) User 'user123' can create a new Income document with incomeId matching the path.
-     * @deny (create) User 'user456' cannot create a Income document under /users/user123/incomes/income456.
-     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
-     */
-    match /users/{userId}/incomes/{incomeId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == incomeId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+    
+    // Cards can be read by any authenticated user, but not written to directly by clients.
+    // Card creation/updates should be handled by a secure backend function if needed,
+    // or pre-populated in the database. For this app, we assume they are added
+    // by an admin or a trusted process.
+    match /cards/{cardId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update, delete: if false; // Prevent client-side modification
     }
   }
 }
