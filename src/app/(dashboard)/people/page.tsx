@@ -12,20 +12,20 @@ export default function PeoplePage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>People</CardTitle>
-          <CardDescription>Manage people to assign purchases to.</CardDescription>
+          <CardTitle>Personas</CardTitle>
+          <CardDescription>Administra a las personas para asignarles compras.</CardDescription>
         </div>
         <Button size="sm" className="gap-2">
           <PlusCircle className="h-4 w-4" />
-          Add Person
+          Agregar Persona
         </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead className="w-[100px] text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -48,8 +48,8 @@ export default function PeoplePage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem>Editar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

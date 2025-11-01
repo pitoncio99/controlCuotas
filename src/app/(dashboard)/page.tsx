@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   const chartConfig = {
     total: {
-      label: "Total Debt",
+      label: "Deuda Total",
     },
   } satisfies ChartConfig;
 
@@ -47,32 +47,32 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding Debt</CardTitle>
+            <CardTitle className="text-sm font-medium">Deuda Total Pendiente</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <p className="text-xs text-muted-foreground">Total remaining on all installments.</p>
+            <p className="text-xs text-muted-foreground">Total restante en todas las cuotas.</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month's Spending</CardTitle>
+            <CardTitle className="text-sm font-medium">Gasto de este Mes</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalMonthlySpending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <p className="text-xs text-muted-foreground">Includes installments and one-off expenses.</p>
+            <p className="text-xs text-muted-foreground">Incluye cuotas y gastos únicos.</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active People</CardTitle>
+            <CardTitle className="text-sm font-medium">Personas Activas</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{people.length}</div>
-            <p className="text-xs text-muted-foreground">Total people in the system.</p>
+            <p className="text-xs text-muted-foreground">Total de personas en el sistema.</p>
           </CardContent>
         </Card>
       </div>
@@ -80,8 +80,8 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Spending by Card</CardTitle>
-            <CardDescription>Total outstanding amount per credit card.</CardDescription>
+            <CardTitle>Gasto por Tarjeta</CardTitle>
+            <CardDescription>Monto total pendiente por tarjeta de crédito.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -113,28 +113,28 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>Basic application monitoring metrics.</CardDescription>
+            <CardTitle>Estado del Sistema</CardTitle>
+            <CardDescription>Métricas básicas de monitoreo de la aplicación.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Cpu className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">CPU Usage</span>
+                <span className="text-sm font-medium">Uso de CPU</span>
               </div>
               <span className="text-sm font-semibold text-green-600">Normal</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MemoryStick className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Memory</span>
+                <span className="text-sm font-medium">Memoria</span>
               </div>
               <span className="text-sm font-semibold">128MB / 512MB</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Server className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Requests</span>
+                <span className="text-sm font-medium">Solicitudes</span>
               </div>
               <span className="text-sm font-semibold">45/min</span>
             </div>

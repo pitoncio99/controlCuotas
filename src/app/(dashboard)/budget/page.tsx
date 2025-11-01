@@ -32,47 +32,47 @@ export default function BudgetPage() {
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Income</CardTitle>
-          <CardDescription>Set your total monthly income to calculate your budget.</CardDescription>
+          <CardTitle>Ingreso Mensual</CardTitle>
+          <CardDescription>Establece tu ingreso mensual total para calcular tu presupuesto.</CardDescription>
         </CardHeader>
         <CardContent className="flex items-end gap-4">
           <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="income">Income for {format(new Date(), 'MMMM yyyy')}</Label>
-            <Input type="number" id="income" placeholder="e.g., 4500" defaultValue={currentMonthIncome} />
+            <Label htmlFor="income">Ingreso para {format(new Date(), 'MMMM yyyy')}</Label>
+            <Input type="number" id="income" placeholder="ej., 4500" defaultValue={currentMonthIncome} />
           </div>
-          <Button>Save</Button>
+          <Button>Guardar</Button>
         </CardContent>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Daily Spending Limit</CardTitle>
+            <CardTitle className="text-sm font-medium">Límite de Gasto Diario</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${dailyBudget.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Recommended daily spending.</p>
+            <p className="text-xs text-muted-foreground">Gasto diario recomendado.</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Spending Limit</CardTitle>
+            <CardTitle className="text-sm font-medium">Límite de Gasto Semanal</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${weeklyBudget.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Recommended weekly spending.</p>
+            <p className="text-xs text-muted-foreground">Gasto semanal recomendado.</p>
           </CardContent>
         </Card>
         <Card className="bg-primary text-primary-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Remaining This Month</CardTitle>
+            <CardTitle className="text-sm font-medium">Restante este Mes</CardTitle>
             <DollarSign className="h-4 w-4 text-primary-foreground/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${remainingBudget.toFixed(2)}</div>
-            <p className="text-xs text-primary-foreground/70">After all known commitments.</p>
+            <p className="text-xs text-primary-foreground/70">Después de todos los compromisos conocidos.</p>
           </CardContent>
         </Card>
       </div>

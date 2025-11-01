@@ -10,20 +10,20 @@ export default function CardsPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Credit Cards</CardTitle>
-          <CardDescription>Manage your registered credit cards.</CardDescription>
+          <CardTitle>Tarjetas de Crédito</CardTitle>
+          <CardDescription>Administra tus tarjetas de crédito registradas.</CardDescription>
         </div>
         <Button size="sm" className="gap-2">
           <PlusCircle className="h-4 w-4" />
-          Add Card
+          Agregar Tarjeta
         </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Card Name</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
+              <TableHead>Nombre de la Tarjeta</TableHead>
+              <TableHead className="w-[100px] text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,8 +43,8 @@ export default function CardsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem>Editar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

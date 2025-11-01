@@ -13,22 +13,22 @@ export default function ExpensesPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>One-off Expenses</CardTitle>
-          <CardDescription>Log additional expenses on your cards.</CardDescription>
+          <CardTitle>Gastos Únicos</CardTitle>
+          <CardDescription>Registra gastos adicionales en tus tarjetas.</CardDescription>
         </div>
         <Button size="sm" className="gap-2">
           <PlusCircle className="h-4 w-4" />
-          Add Expense
+          Agregar Gasto
         </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Card</TableHead>
-              <TableHead className="hidden sm:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Descripción</TableHead>
+              <TableHead className="hidden sm:table-cell">Tarjeta</TableHead>
+              <TableHead className="hidden sm:table-cell">Fecha</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

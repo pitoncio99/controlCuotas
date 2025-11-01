@@ -15,24 +15,24 @@ export default function PurchasesPage() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Installment Purchases</CardTitle>
-          <CardDescription>A list of all your ongoing installment plans.</CardDescription>
+          <CardTitle>Compras en Cuotas</CardTitle>
+          <CardDescription>Una lista de todos tus planes de cuotas en curso.</CardDescription>
         </div>
         <Button size="sm" className="gap-2">
           <PlusCircle className="h-4 w-4" />
-          Add Purchase
+          Agregar Compra
         </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Description</TableHead>
-              <TableHead className="hidden md:table-cell">Person</TableHead>
-              <TableHead>Card</TableHead>
-              <TableHead className="text-right">Installment</TableHead>
-              <TableHead className="hidden md:table-cell text-right">Total Value</TableHead>
-              <TableHead>Progress</TableHead>
+              <TableHead>Descripción</TableHead>
+              <TableHead className="hidden md:table-cell">Persona</TableHead>
+              <TableHead>Tarjeta</TableHead>
+              <TableHead className="text-right">Cuota</TableHead>
+              <TableHead className="hidden md:table-cell text-right">Valor Total</TableHead>
+              <TableHead>Progreso</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -58,8 +58,8 @@ export default function PurchasesPage() {
                   <TableCell className="hidden md:table-cell text-right">${totalValue.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <Progress value={progress} aria-label={`${Math.round(progress)}% paid`} />
-                      <span className="text-xs text-muted-foreground text-center">{purchase.installmentsPaid} of {purchase.totalInstallments} paid</span>
+                      <Progress value={progress} aria-label={`${Math.round(progress)}% pagado`} />
+                      <span className="text-xs text-muted-foreground text-center">{purchase.installmentsPaid} de {purchase.totalInstallments} pagadas</span>
                     </div>
                   </TableCell>
                 </TableRow>

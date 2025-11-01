@@ -22,11 +22,11 @@ import {
 
 const menuItems = [
   { href: '/', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/purchases', label: 'Purchases', icon: Receipt },
-  { href: '/cards', label: 'Cards', icon: CreditCard },
-  { href: '/people', label: 'People', icon: Users },
-  { href: '/expenses', label: 'Expenses', icon: ShoppingCart },
-  { href: '/budget', label: 'Budget', icon: PiggyBank },
+  { href: '/purchases', label: 'Compras', icon: Receipt },
+  { href: '/cards', label: 'Tarjetas', icon: CreditCard },
+  { href: '/people', label: 'Personas', icon: Users },
+  { href: '/expenses', label: 'Gastos', icon: ShoppingCart },
+  { href: '/budget', label: 'Presupuesto', icon: PiggyBank },
 ];
 
 export function AppNav() {
