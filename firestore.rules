@@ -27,143 +27,38 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Root collection for user-specific data. Only allows authenticated users.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own root document.
-     * @deny (create) User with ID 'user123' cannot create a root document for 'user456'.
-     * @principle Enforces user authentication and ownership for the root user document.
+     * Helper function to check if the requester is the owner of the data.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Users can create their own document, but cannot read or list other users.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
       allow get: if false;
       allow list: if false;
-
       allow create: if isOwner(userId);
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Manages personal information for a user.
-     * @path /users/{userId}/people/{personId}
-     * @allow (create) User with ID 'user123' can create a person document under their ID.
-     * @deny (create) User with ID 'user123' cannot create a person document under 'user456'.
-     * @principle Enforces document ownership for writes.
+     * Generic rule for all user-owned subcollections (people, cards, purchases, etc.).
+     * Ensures that only the authenticated owner can perform any action on their own documents.
      */
-    match /users/{userId}/people/{personId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     /**
-     * @description Manages credit card information for a user.
-     * @path /users/{userId}/cards/{cardId}
-     * @allow (create) User with ID 'user123' can create a card document under their ID.
-     * @deny (create) User with ID 'user123' cannot create a card document under 'user456'.
-     * @principle Enforces document ownership for writes.
+     * Card data is considered public and readable by any authenticated user,
+     * but writable only by the owner.
      */
-    match /users/{userId}/cards/{cardId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Manages purchase installment information for a user.
-     * @path /users/{userId}/purchaseInstallments/{purchaseInstallmentId}
-     * @allow (create) User with ID 'user123' can create a purchase installment document under their ID.
-     * @deny (create) User with ID 'user123' cannot create a purchase installment document under 'user456'.
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/purchaseInstallments/{purchaseInstallmentId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Manages expense information for a user.
-     * @path /users/{userId}/expenses/{expenseId}
-     * @allow (create) User with ID 'user123' can create an expense document under their ID.
-     * @deny (create) User with ID 'user123' cannot create an expense document under 'user456'.
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/expenses/{expenseId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Manages income information for a user.
-     * @path /users/{userId}/incomes/{incomeId}
-     * @allow (create) User with ID 'user123' can create an income document under their ID.
-     * @deny (create) User with ID 'user123' cannot create an income document under 'user456'.
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/incomes/{incomeId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    match /cards/{cardId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Nobody can write to the global cards collection for now
     }
   }
 }

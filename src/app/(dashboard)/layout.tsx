@@ -1,6 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { AppHeader } from './components/header';
 import { AppNav } from './components/nav';
@@ -12,13 +11,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
 
   if (isUserLoading || !user) {
     return (
