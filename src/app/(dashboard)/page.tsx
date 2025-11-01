@@ -6,21 +6,29 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import type { ChartConfig } from "@/components/ui/chart";
 import { DollarSign, CreditCard, Users, Cpu, MemoryStick, Server } from "lucide-react";
 import { format } from 'date-fns';
-import { useFirestore } from "@/firebase";
-import { useCollection } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
-import type { Purchase, Expense, Card as CardType, Person } from "@/app/lib/definitions";
+import type { PurchaseInstallment, Expense, Card as CardType, Person } from "@/app/lib/definitions";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
-  const { data: purchases, loading: purchasesLoading } = useCollection<Purchase>(firestore ? collection(firestore, 'purchases') : null);
-  const { data: expenses, loading: expensesLoading } = useCollection<Expense>(firestore ? collection(firestore, 'expenses') : null);
-  const { data: cards, loading: cardsLoading } = useCollection<CardType>(firestore ? collection(firestore, 'cards') : null);
-  const { data: people, loading: peopleLoading } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+  const { user } = useUser();
+
+  const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
+  
+  const expensesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/expenses`) : null, [firestore, user]);
+  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesCollection);
+
+  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
+
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
+  const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const totalOutstanding = purchases?.reduce((acc, p) => {
-    const remainingInstallments = p.totalInstallments - p.installmentsPaid;
-    return acc + remainingInstallments * p.amountPerInstallment;
+    const remainingInstallments = p.totalInstallments - p.paidInstallments;
+    return acc + remainingInstallments * p.installmentAmount;
   }, 0) || 0;
 
   const currentMonth = format(new Date(), 'yyyy-MM');
@@ -29,10 +37,10 @@ export default function DashboardPage() {
     .reduce((acc, e) => acc + e.amount, 0) || 0;
 
   const monthlyInstallments = purchases?.reduce((acc, p) => {
-    const remainingInstallments = p.totalInstallments - p.installmentsPaid;
+    const remainingInstallments = p.totalInstallments - p.paidInstallments;
     if (remainingInstallments > 0) {
       // A simple approximation: assumes an installment is due this month if not fully paid.
-      return acc + p.amountPerInstallment;
+      return acc + p.installmentAmount;
     }
     return acc;
   }, 0) || 0;
@@ -40,7 +48,7 @@ export default function DashboardPage() {
   const totalMonthlySpending = monthlyExpenses + monthlyInstallments;
   
   const spendingByCard = cards?.map(card => {
-    const cardPurchases = purchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.amountPerInstallment * (p.totalInstallments - p.installmentsPaid), 0) || 0;
+    const cardPurchases = purchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.installmentAmount * (p.totalInstallments - p.paidInstallments), 0) || 0;
     return { name: card.name, total: cardPurchases, fill: card.color };
   }) || [];
 

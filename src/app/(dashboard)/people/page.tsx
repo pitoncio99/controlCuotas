@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Person } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PersonForm } from './components/person-form';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -25,7 +25,8 @@ import {
 
 export default function PeoplePage() {
   const firestore = useFirestore();
-  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  const { user } = useUser();
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
   const { data: people, isLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -47,9 +48,9 @@ export default function PeoplePage() {
     setEditingPerson(undefined);
   };
 
-  const handleDelete = (id: string) => {
-    if (firestore) {
-      deleteDocumentNonBlocking(doc(firestore, 'people', id));
+  const handleDelete = () => {
+    if (firestore && user && deletingPerson) {
+      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/persons`, deletingPerson.id));
     }
     setDeletingPerson(undefined);
   };
@@ -133,7 +134,7 @@ export default function PeoplePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(deletingPerson!.id)}>Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

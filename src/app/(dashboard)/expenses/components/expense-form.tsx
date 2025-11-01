@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Expense } from '@/app/lib/definitions';
-import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
@@ -35,6 +35,7 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -45,7 +46,7 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     const expenseData = {
       ...data,
@@ -53,15 +54,15 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
     };
 
     if (expense?.id) {
-      const expenseRef = doc(firestore, 'expenses', expense.id);
+      const expenseRef = doc(firestore, `users/${user.uid}/expenses`, expense.id);
       setDocumentNonBlocking(expenseRef, expenseData, { merge: true });
       toast({
         title: 'Gasto Actualizado',
         description: `El gasto "${data.description}" ha sido actualizado.`,
       });
     } else {
-      const newExpenseId = doc(collection(firestore, 'expenses')).id;
-      const expenseRef = doc(firestore, 'expenses', newExpenseId);
+      const newExpenseId = doc(collection(firestore, `users/${user.uid}/expenses`)).id;
+      const expenseRef = doc(firestore, `users/${user.uid}/expenses`, newExpenseId);
       setDocumentNonBlocking(expenseRef, { id: newExpenseId, ...expenseData }, { merge: true });
       toast({
         title: 'Gasto Guardado',

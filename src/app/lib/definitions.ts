@@ -1,6 +1,7 @@
 export type Person = {
   id: string;
   name: string;
+  email?: string;
   avatar?: string;
 };
 
@@ -10,15 +11,15 @@ export type Card = {
   color: string;
 };
 
-export type Purchase = {
+export type PurchaseInstallment = {
   id: string;
   description: string;
   cardId: string;
   personId: string;
-  amountPerInstallment: number;
-  installmentsPaid: number;
+  installmentAmount: number;
+  paidInstallments: number;
   totalInstallments: number;
-  purchaseDate: string; // ISO date string
+  paymentDeadline: string; // ISO date string
 };
 
 export type Expense = {
@@ -26,10 +27,13 @@ export type Expense = {
   description: string;
   amount: number;
   date: string; // ISO date string
+  cardId?: string; 
 };
 
 export type MonthlyIncome = {
   id: string;
   month: string; // YYYY-MM
   amount: number;
+  date?: string;
+  description?: string;
 };

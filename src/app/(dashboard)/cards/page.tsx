@@ -48,8 +48,8 @@ export default function CardsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (firestore) {
-      deleteDocumentNonBlocking(doc(firestore, 'cards', id));
+    if (firestore && deletingCard) {
+      deleteDocumentNonBlocking(doc(firestore, 'cards', deletingCard.id));
     }
     setDeletingCard(undefined);
   };

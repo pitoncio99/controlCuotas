@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Person } from '@/app/lib/definitions';
-import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
@@ -25,6 +25,7 @@ interface PersonFormProps {
 
 export function PersonForm({ person, onSave }: PersonFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -34,18 +35,18 @@ export function PersonForm({ person, onSave }: PersonFormProps) {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     if (person?.id) {
-      const personRef = doc(firestore, 'people', person.id);
+      const personRef = doc(firestore, `users/${user.uid}/persons`, person.id);
       setDocumentNonBlocking(personRef, data, { merge: true });
       toast({
         title: 'Persona Actualizada',
         description: `La persona "${data.name}" ha sido actualizada.`,
       });
     } else {
-      const newPersonId = doc(collection(firestore, 'people')).id;
-      const personRef = doc(firestore, 'people', newPersonId);
+      const newPersonId = doc(collection(firestore, `users/${user.uid}/persons`)).id;
+      const personRef = doc(firestore, `users/${user.uid}/persons`, newPersonId);
       setDocumentNonBlocking(personRef, { id: newPersonId, ...data }, { merge: true });
       toast({
         title: 'Persona Agregada',

@@ -10,7 +10,7 @@ import type { Expense } from '@/app/lib/definitions';
 import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ExpenseForm } from './components/expense-form';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -25,7 +25,8 @@ import {
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
-  const expensesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'expenses') : null, [firestore]);
+  const { user } = useUser();
+  const expensesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/expenses`) : null, [firestore, user]);
   const { data: expenses, isLoading } = useCollection<Expense>(expensesCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -47,9 +48,9 @@ export default function ExpensesPage() {
     setEditingExpense(undefined);
   };
   
-  const handleDelete = async (id: string) => {
-    if (firestore) {
-      deleteDocumentNonBlocking(doc(firestore, 'expenses', id));
+  const handleDelete = async () => {
+    if (firestore && user && deletingExpense) {
+      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/expenses`, deletingExpense.id));
     }
     setDeletingExpense(undefined);
   };
@@ -139,7 +140,7 @@ export default function ExpensesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(deletingExpense!.id)}>Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

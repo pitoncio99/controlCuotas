@@ -13,8 +13,8 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
-import type { Purchase, Card, Person } from '@/app/lib/definitions';
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import type { PurchaseInstallment, Card, Person } from '@/app/lib/definitions';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
@@ -23,26 +23,29 @@ const FormSchema = z.object({
   }),
   personId: z.string({ required_error: 'Debes seleccionar una persona.' }),
   cardId: z.string({ required_error: 'Debes seleccionar una tarjeta.' }),
-  amountPerInstallment: z.coerce.number().positive({ message: 'El monto debe ser un número positivo.' }),
-  installmentsPaid: z.coerce.number().int().min(0, { message: 'Debe ser un número no negativo.' }),
+  installmentAmount: z.coerce.number().positive({ message: 'El monto debe ser un número positivo.' }),
+  paidInstallments: z.coerce.number().int().min(0, { message: 'Debe ser un número no negativo.' }),
   totalInstallments: z.coerce.number().int().positive({ message: 'Debe ser un número positivo.' }),
-  purchaseDate: z.date({ required_error: 'Se requiere una fecha de compra.' }),
-}).refine(data => data.installmentsPaid <= data.totalInstallments, {
+  paymentDeadline: z.date({ required_error: 'Se requiere una fecha de compra.' }),
+}).refine(data => data.paidInstallments <= data.totalInstallments, {
   message: "Las cuotas pagadas no pueden ser mayores que las cuotas totales.",
-  path: ["installmentsPaid"],
+  path: ["paidInstallments"],
 });
 
 
 interface PurchaseFormProps {
-  purchase?: Purchase;
+  purchase?: PurchaseInstallment;
   onSave: () => void;
 }
 
 export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
+
   const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
   const { data: cards } = useCollection<Card>(cardsCollection);
-  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
   const { data: people } = useCollection<Person>(peopleCollection);
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -51,31 +54,31 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
       description: purchase?.description || '',
       personId: purchase?.personId || undefined,
       cardId: purchase?.cardId || undefined,
-      amountPerInstallment: purchase?.amountPerInstallment || 0,
-      installmentsPaid: purchase?.installmentsPaid || 0,
+      installmentAmount: purchase?.installmentAmount || 0,
+      paidInstallments: purchase?.paidInstallments || 0,
       totalInstallments: purchase?.totalInstallments || 1,
-      purchaseDate: purchase ? new Date(purchase.purchaseDate) : new Date(),
+      paymentDeadline: purchase ? new Date(purchase.paymentDeadline) : new Date(),
     },
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     const purchaseData = {
       ...data,
-      purchaseDate: data.purchaseDate.toISOString(),
+      paymentDeadline: data.paymentDeadline.toISOString(),
     };
 
     if (purchase?.id) {
-      const purchaseRef = doc(firestore, 'purchases', purchase.id);
+      const purchaseRef = doc(firestore, `users/${user.uid}/purchaseInstallments`, purchase.id);
       setDocumentNonBlocking(purchaseRef, purchaseData, { merge: true });
       toast({
         title: 'Compra Actualizada',
         description: `La compra "${data.description}" ha sido actualizada.`,
       });
     } else {
-      const newPurchaseId = doc(collection(firestore, 'purchases')).id;
-      const purchaseRef = doc(firestore, 'purchases', newPurchaseId);
+      const newPurchaseId = doc(collection(firestore, `users/${user.uid}/purchaseInstallments`)).id;
+      const purchaseRef = doc(firestore, `users/${user.uid}/purchaseInstallments`, newPurchaseId);
       setDocumentNonBlocking(purchaseRef, { id: newPurchaseId, ...purchaseData }, { merge: true });
       toast({
         title: 'Compra Guardada',
@@ -146,7 +149,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
-              name="amountPerInstallment"
+              name="installmentAmount"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Monto por Cuota</FormLabel>
@@ -159,7 +162,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
             />
             <FormField
               control={form.control}
-              name="installmentsPaid"
+              name="paidInstallments"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cuotas Pagadas</FormLabel>
@@ -186,7 +189,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
         </div>
         <FormField
           control={form.control}
-          name="purchaseDate"
+          name="paymentDeadline"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de Compra</FormLabel>

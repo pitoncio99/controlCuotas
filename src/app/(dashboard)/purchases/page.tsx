@@ -9,9 +9,9 @@ import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
-import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import type { Purchase, Card as CardType, Person } from '@/app/lib/definitions';
+import type { PurchaseInstallment, Card as CardType, Person } from '@/app/lib/definitions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,20 +25,22 @@ import {
 
 export default function PurchasesPage() {
   const firestore = useFirestore();
-  const purchasesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'purchases') : null, [firestore]);
-  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchasesCollection);
+  const { user } = useUser();
+  
+  const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
 
   const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
 
-  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
   const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingPurchase, setEditingPurchase] = useState<Purchase | undefined>(undefined);
-  const [deletingPurchase, setDeletingPurchase] = useState<Purchase | undefined>(undefined);
+  const [editingPurchase, setEditingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
+  const [deletingPurchase, setDeletingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
 
-  const handleEdit = (purchase: Purchase) => {
+  const handleEdit = (purchase: PurchaseInstallment) => {
     setEditingPurchase(purchase);
     setSheetOpen(true);
   };
@@ -53,9 +55,9 @@ export default function PurchasesPage() {
     setEditingPurchase(undefined);
   };
 
-  const handleDelete = (id: string) => {
-    if (firestore) {
-      deleteDocumentNonBlocking(doc(firestore, 'purchases', id));
+  const handleDelete = () => {
+    if (firestore && user && deletingPurchase) {
+      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/purchaseInstallments`, deletingPurchase.id));
     }
     setDeletingPurchase(undefined);
   };
@@ -102,7 +104,7 @@ export default function PurchasesPage() {
                 </TableRow>
               )}
               {!isLoading && (purchases || []).map((purchase) => {
-                const remainingAmount = (purchase.totalInstallments - purchase.installmentsPaid) * purchase.amountPerInstallment;
+                const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
                 return (
                   <TableRow key={purchase.id}>
                     <TableCell>
@@ -113,9 +115,9 @@ export default function PurchasesPage() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{getPersonName(purchase.personId)}</TableCell>
                     <TableCell className="hidden md:table-cell">{getCardName(purchase.cardId)}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-right">{formatCurrency(purchase.amountPerInstallment)}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-right">{formatCurrency(purchase.installmentAmount)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="font-mono">{purchase.installmentsPaid}/{purchase.totalInstallments}</Badge>
+                      <Badge variant="outline" className="font-mono">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
                     <TableCell className="text-right">
@@ -159,7 +161,7 @@ export default function PurchasesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(deletingPurchase!.id)}>Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

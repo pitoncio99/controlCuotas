@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Card } from '@/app/lib/definitions';
-import { useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({

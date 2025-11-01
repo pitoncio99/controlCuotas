@@ -7,27 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Calendar, Zap } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
-import type { Purchase, Expense, MonthlyIncome } from '@/app/lib/definitions';
+import type { Expense, MonthlyIncome } from '@/app/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase';
+import type { PurchaseInstallment } from '@/app/lib/definitions';
 
 export default function BudgetPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const currentMonthStr = format(new Date(), 'yyyy-MM');
 
   const incomeQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'income'), where('month', '==', currentMonthStr)) : null
-  , [firestore, currentMonthStr]);
+    firestore && user ? query(collection(firestore, `users/${user.uid}/incomes`), where('month', '==', currentMonthStr)) : null
+  , [firestore, user, currentMonthStr]);
   const { data: incomeData, isLoading: incomeLoading } = useCollection<MonthlyIncome>(incomeQuery);
 
-  const expensesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'expenses') : null, [firestore]);
+  const expensesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/expenses`) : null, [firestore, user]);
   const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesCollection);
 
-  const purchasesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'purchases') : null, [firestore]);
-  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchasesCollection);
+  const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
   
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   
@@ -44,11 +45,11 @@ export default function BudgetPage() {
     .reduce((acc, e) => acc + e.amount, 0) || 0;
 
   const currentMonthInstallments = purchases?.reduce((acc, p) => {
-    const remainingInstallments = p.totalInstallments - p.installmentsPaid;
+    const remainingInstallments = p.totalInstallments - p.paidInstallments;
     if (remainingInstallments > 0) {
       // This logic assumes an installment is due every month. 
       // A more precise calculation might be needed based on purchaseDate.
-      return acc + p.amountPerInstallment;
+      return acc + p.installmentAmount;
     }
     return acc;
   }, 0) || 0;
@@ -65,10 +66,10 @@ export default function BudgetPage() {
   }
 
   const handleSaveIncome = () => {
-    if (!firestore) return;
-    const incomeId = incomeData && incomeData.length > 0 ? incomeData[0].id : doc(collection(firestore, 'income')).id;
+    if (!firestore || !user) return;
+    const incomeId = incomeData && incomeData.length > 0 ? incomeData[0].id : doc(collection(firestore, `users/${user.uid}/incomes`)).id;
     
-    const incomeDocRef = doc(firestore, 'income', incomeId);
+    const incomeDocRef = doc(firestore, `users/${user.uid}/incomes`, incomeId);
     const dataToSave = { id: incomeId, month: currentMonthStr, amount: monthlyIncome };
 
     setDocumentNonBlocking(incomeDocRef, dataToSave, { merge: true });
