@@ -207,6 +207,9 @@ export default function PurchasesPage() {
       return;
     }
 
+    const allInProgressPurchases = sortedAndFilteredPurchases.filter(p => p.paidInstallments > 0);
+    const totalAmountForExport = allInProgressPurchases.reduce((acc, p) => acc + p.installmentAmount, 0);
+
     const groupedByCard = sortedAndFilteredPurchases.reduce((acc, p) => {
       if (!acc[p.cardId]) {
         acc[p.cardId] = [];
@@ -214,9 +217,6 @@ export default function PurchasesPage() {
       acc[p.cardId].push(p);
       return acc;
     }, {} as Record<string, PurchaseInstallment[]>);
-
-    let totalAmountForExport = 0;
-    const allInProgressPurchases = sortedAndFilteredPurchases.filter(p => p.paidInstallments > 0);
 
     const rows = Object.entries(groupedByCard).map(([cardId, purchases]) => {
       const cardName = getCard(cardId)?.name || 'N/A';
@@ -227,7 +227,6 @@ export default function PurchasesPage() {
       const purchaseLines = inProgressPurchases.map(p => {
         const progress = `${p.paidInstallments}/${p.totalInstallments}`;
         const amount = formatCurrency(p.installmentAmount);
-        totalAmountForExport += p.installmentAmount;
         return `${amount} --> ${p.description} --> ${progress}`;
       }).join("\n");
 
@@ -433,3 +432,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    
