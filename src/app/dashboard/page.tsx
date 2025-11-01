@@ -57,8 +57,8 @@ export default function DashboardPage() {
   const currentMonthInstallments = useMemo(() => {
     const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
     return filteredPurchases?.reduce((acc, p) => {
-      const remainingInstallments = p.totalInstallments - p.paidInstallments;
-      if (remainingInstallments > 0) {
+      // Only include purchases that have started (paidInstallments > 0)
+      if (p.paidInstallments > 0) {
         return acc + p.installmentAmount;
       }
       return acc;
