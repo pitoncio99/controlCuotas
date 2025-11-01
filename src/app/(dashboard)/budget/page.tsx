@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Calendar, Zap } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/firebase';
 import { collection, doc, setDoc, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { Purchase, Expense, MonthlyIncome } from '@/app/lib/definitions';

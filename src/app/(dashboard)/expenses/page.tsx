@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ExpenseForm } from './components/expense-form';
 import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import {
   AlertDialog,

@@ -49,6 +49,7 @@ export function useCollection<T extends DocumentData>(
       return;
     }
 
+    setLoading(true);
     const unsubscribe = onSnapshot(
       queryRef.current,
       (snapshot) => {

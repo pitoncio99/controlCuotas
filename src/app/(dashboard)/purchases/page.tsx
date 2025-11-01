@@ -9,9 +9,8 @@ import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection, useFirestore } from '@/firebase';
 import { collection, deleteDoc, doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import type { Purchase, Card as CardType, Person } from '@/app/lib/definitions';
 import {
   AlertDialog,

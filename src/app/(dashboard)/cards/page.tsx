@@ -10,7 +10,7 @@ import type { Card as CardType } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CardForm } from './components/card-form';
 import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import {
   AlertDialog,

@@ -7,7 +7,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { DollarSign, CreditCard, Users, Cpu, MemoryStick, Server } from "lucide-react";
 import { format } from 'date-fns';
 import { useFirestore } from "@/firebase";
-import { useCollection } from "@/firebase/firestore/use-collection";
+import { useCollection } from "@/firebase";
 import { collection } from "firebase/firestore";
 import type { Purchase, Expense, Card as CardType, Person } from "@/app/lib/definitions";
 

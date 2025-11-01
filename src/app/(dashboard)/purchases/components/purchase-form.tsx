@@ -14,8 +14,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Purchase, Card, Person } from '@/app/lib/definitions';
-import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 
 const FormSchema = z.object({

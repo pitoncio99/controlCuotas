@@ -11,7 +11,7 @@ import type { Person } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PersonForm } from './components/person-form';
 import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import {
   AlertDialog,
