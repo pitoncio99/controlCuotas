@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { addMonths, format } from 'date-fns';
 import { useFilter } from '../components/filter-context';
+import { cn } from '@/lib/utils';
 
 
 type ProgressUpdateAction = {
@@ -236,10 +237,11 @@ export default function PurchasesPage() {
                 {!isLoading && filteredPurchases.map((purchase) => {
                   const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
                   const card = getCard(purchase.cardId);
+                  const isCompleted = purchase.paidInstallments >= purchase.totalInstallments && purchase.totalInstallments > 0;
                   const progressPercentage = purchase.totalInstallments > 0 ? (purchase.paidInstallments / purchase.totalInstallments) * 100 : 0;
                   
                   return (
-                    <TableRow key={purchase.id}>
+                    <TableRow key={purchase.id} className={cn(isCompleted && 'bg-green-500/10 hover:bg-green-500/20')}>
                       <TableCell className="hidden md:table-cell">
                         <div className="p-1 rounded-md text-center" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
                           {card?.name || 'N/A'}
@@ -261,7 +263,7 @@ export default function PurchasesPage() {
                           </Button>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge variant="outline" className="font-mono text-sm">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
+                              <Badge variant={isCompleted ? 'default' : 'outline'} className={cn(isCompleted && 'bg-green-600/80 text-white')}>{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>{progressPercentage.toFixed(0)}% pagado</p>
@@ -349,3 +351,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    
