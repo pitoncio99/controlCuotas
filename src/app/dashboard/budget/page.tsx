@@ -9,9 +9,9 @@ import { DollarSign, Calendar, Zap } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
 import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
-import type { Expense, MonthlyIncome } from '@/app/lib/definitions';
+import type { Expense } from '@/app/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import type { PurchaseInstallment } from '@/app/lib/definitions';
+import type { PurchaseInstallment, MonthlyIncome } from '@/app/lib/definitions';
 
 export default function BudgetPage() {
   const firestore = useFirestore();

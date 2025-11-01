@@ -22,11 +22,11 @@ import {
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/purchases', label: 'Compras', icon: Receipt },
-  { href: '/cards', label: 'Tarjetas', icon: CreditCard },
-  { href: '/people', label: 'Personas', icon: Users },
-  { href: '/expenses', label: 'Gastos', icon: ShoppingCart },
-  { href: '/budget', label: 'Presupuesto', icon: PiggyBank },
+  { href: '/dashboard/purchases', label: 'Compras', icon: Receipt },
+  { href: '/dashboard/cards', label: 'Tarjetas', icon: CreditCard },
+  { href: '/dashboard/people', label: 'Personas', icon: Users },
+  { href: '/dashboard/expenses', label: 'Gastos', icon: ShoppingCart },
+  { href: '/dashboard/budget', label: 'Presupuesto', icon: PiggyBank },
 ];
 
 export function AppNav() {
@@ -46,7 +46,7 @@ export function AppNav() {
             <SidebarMenuItem key={href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith(href)}
+                isActive={pathname === href}
                 tooltip={label}
               >
                 <Link href={href}>

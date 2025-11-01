@@ -3,7 +3,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth, initiateGoogleSignIn } from '@/firebase';
+import { useAuth } from '@/firebase';
+import { initiateGoogleSignIn }from '@/firebase/non-blocking-login';
 
 // Simple SVG for Google icon
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
