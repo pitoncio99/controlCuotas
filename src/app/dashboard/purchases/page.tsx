@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 type ProgressUpdateAction = {
   purchase: PurchaseInstallment;
@@ -49,6 +51,9 @@ export default function PurchasesPage() {
   const [editingPurchase, setEditingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [deletingPurchase, setDeletingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdateAction>(null);
+
+  const [filterPersonId, setFilterPersonId] = useState<string>('');
+  const [filterCardId, setFilterCardId] = useState<string>('');
 
   const handleEdit = (purchase: PurchaseInstallment) => {
     setEditingPurchase(purchase);
@@ -107,6 +112,14 @@ export default function PurchasesPage() {
   
   const isLoading = purchasesLoading || cardsLoading || peopleLoading;
 
+  const filteredPurchases = useMemo(() => {
+    return (purchases || []).filter(purchase => {
+      const personMatch = filterPersonId ? purchase.personId === filterPersonId : true;
+      const cardMatch = filterCardId ? purchase.cardId === filterCardId : true;
+      return personMatch && cardMatch;
+    });
+  }, [purchases, filterPersonId, filterCardId]);
+
   return (
     <>
       <Card>
@@ -121,6 +134,26 @@ export default function PurchasesPage() {
           </Button>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center gap-4 mb-4">
+            <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrar por persona" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las personas</SelectItem>
+                {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={(value) => setFilterCardId(value === 'all' ? '' : value)} defaultValue="all">
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrar por tarjeta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las tarjetas</SelectItem>
+                {(cards || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -140,7 +173,7 @@ export default function PurchasesPage() {
                   <TableCell colSpan={8} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
-              {!isLoading && (purchases || []).map((purchase) => {
+              {!isLoading && filteredPurchases.map((purchase) => {
                 const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
                 const card = getCard(purchase.cardId);
                 return (
@@ -153,7 +186,7 @@ export default function PurchasesPage() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{getPersonName(purchase.personId)}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <div className="p-1 rounded-md" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
+                      <div className="p-1 rounded-md text-center" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
                         {card?.name || 'N/A'}
                       </div>
                     </TableCell>
@@ -233,3 +266,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    
