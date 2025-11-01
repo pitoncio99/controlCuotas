@@ -140,7 +140,14 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {(cards || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {(cards || []).map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                            {c.name}
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
