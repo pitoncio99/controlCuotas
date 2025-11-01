@@ -14,6 +14,8 @@ import { useFilter } from './components/filter-context';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { IncomeForm } from './components/income-form';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 
 export default function DashboardPage() {
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const { people, filterPersonId } = useFilter();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [showZeroDebtCards, setShowZeroDebtCards] = useState(false);
 
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
@@ -76,16 +79,20 @@ export default function DashboardPage() {
   const spendingByCard = useMemo(() => {
     const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
     
-    return cards?.map(card => {
+    let cardData = cards?.map(card => {
         const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => {
           const remainingInstallments = p.totalInstallments - p.paidInstallments;
           return acc + remainingInstallments * p.installmentAmount;
         }, 0) || 0;
         return { name: card.name, total: cardPurchases, fill: card.color };
-      })
-      .filter(card => card.total > 0) // Only include cards with a total debt > 0
-    || [];
-  }, [cards, purchases, filterPersonId]);
+      }) || [];
+
+    if (!showZeroDebtCards) {
+      cardData = cardData.filter(card => card.total > 0);
+    }
+    
+    return cardData;
+  }, [cards, purchases, filterPersonId, showZeroDebtCards]);
 
 
   const chartConfig = {
@@ -193,6 +200,14 @@ export default function DashboardPage() {
                 <div>
                   <CardTitle>Deuda por Tarjeta</CardTitle>
                   <CardDescription>Monto total pendiente por tarjeta de crédito ({filterPersonId ? people?.find(p=>p.id === filterPersonId)?.name : 'Todos'}).</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="show-zero-debt"
+                    checked={showZeroDebtCards}
+                    onCheckedChange={setShowZeroDebtCards}
+                  />
+                  <Label htmlFor="show-zero-debt" className="text-sm">Mostrar tarjetas sin deuda</Label>
                 </div>
               </div>
           </CardHeader>
