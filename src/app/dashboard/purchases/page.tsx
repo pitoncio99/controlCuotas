@@ -12,8 +12,6 @@ import { PurchaseForm } from './components/purchase-form';
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useUser, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { PurchaseInstallment, Card as CardType, Person } from '@/app/lib/definitions';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 type ProgressUpdateAction = {
@@ -154,74 +153,82 @@ export default function PurchasesPage() {
               </SelectContent>
             </Select>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="hidden sm:table-cell">Persona</TableHead>
-                <TableHead className="hidden md:table-cell">Tarjeta</TableHead>
-                <TableHead className="hidden lg:table-cell">Fecha Compra</TableHead>
-                <TableHead className="text-center">Progreso</TableHead>
-                <TableHead className="hidden md:table-cell">Último Pago</TableHead>
-                <TableHead className="text-right">Total Restante</TableHead>
-                <TableHead className="w-[100px] text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Cargando...</TableCell>
+                  <TableHead className="hidden md:table-cell">Tarjeta</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="hidden sm:table-cell">Persona</TableHead>
+                  <TableHead className="text-right">Monto Cuota</TableHead>
+                  <TableHead className="text-right">Restante</TableHead>
+                  <TableHead className="text-center">Progreso</TableHead>
+                  <TableHead className="w-[100px] text-right">Acciones</TableHead>
                 </TableRow>
-              )}
-              {!isLoading && filteredPurchases.map((purchase) => {
-                const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
-                const card = getCard(purchase.cardId);
-                return (
-                  <TableRow key={purchase.id}>
-                    <TableCell>
-                      <div className="font-medium">{purchase.description}</div>
-                      <div className="text-sm text-muted-foreground md:hidden">
-                        {getPersonName(purchase.personId)} - {card?.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{getPersonName(purchase.personId)}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="p-1 rounded-md text-center" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
-                        {card?.name || 'N/A'}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{format(new Date(purchase.paymentDeadline), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'down' })} disabled={purchase.paidInstallments <= 0}>
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                        <Badge variant="outline" className="font-mono text-sm">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'up' })} disabled={purchase.paidInstallments >= purchase.totalInstallments}>
-                          <ChevronUp className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{purchase.lastPayment || 'N/A'}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
-                    <TableCell className="text-right">
-                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(purchase)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setDeletingPurchase(purchase)} className="text-destructive">Eliminar</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">Cargando...</TableCell>
                   </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                )}
+                {!isLoading && filteredPurchases.map((purchase) => {
+                  const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
+                  const card = getCard(purchase.cardId);
+                  const progressPercentage = purchase.totalInstallments > 0 ? (purchase.paidInstallments / purchase.totalInstallments) * 100 : 0;
+                  return (
+                    <TableRow key={purchase.id}>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="p-1 rounded-md text-center" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
+                          {card?.name || 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{purchase.description}</div>
+                        <div className="text-sm text-muted-foreground md:hidden">
+                          {card?.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{getPersonName(purchase.personId)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(purchase.installmentAmount)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
+                      <TableCell className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-center gap-1 cursor-default">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'down' })} disabled={purchase.paidInstallments <= 0}>
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                              <Badge variant="outline" className="font-mono text-sm">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'up' })} disabled={purchase.paidInstallments >= purchase.totalInstallments}>
+                                <ChevronUp className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{progressPercentage.toFixed(0)}% pagado</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell className="text-right">
+                         <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(purchase)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setDeletingPurchase(purchase)} className="text-destructive">Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         </CardContent>
       </Card>
       <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
@@ -266,5 +273,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
-    
