@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { purchases, cards, people } from '../lib/data';
+import { purchases, cards, people } from '@/app/lib/data';
 import { format } from 'date-fns';
 
 export default function PurchasesPage() {

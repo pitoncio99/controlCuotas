@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { income, expenses, purchases } from "../lib/data";
+import { income, expenses, purchases } from "@/app/lib/data";
 import { DollarSign, Calendar, Zap } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
 

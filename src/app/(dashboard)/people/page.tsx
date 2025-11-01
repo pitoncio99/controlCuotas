@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { people } from '../lib/data';
+import { people } from '@/app/lib/data';
 
 export default function PeoplePage() {
   return (

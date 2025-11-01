@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
-import { expenses, cards } from '../lib/data';
+import { expenses, cards } from '@/app/lib/data';
 import { format } from 'date-fns';
 
 export default function ExpensesPage() {

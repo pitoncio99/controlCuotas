@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import { purchases, expenses, cards, people } from '../lib/data';
+import { purchases, expenses, cards, people } from '@/app/lib/data';
 import { DollarSign, CreditCard, Users, Cpu, MemoryStick, Server } from "lucide-react";
 import { format } from 'date-fns';
 
