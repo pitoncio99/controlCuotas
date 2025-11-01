@@ -14,9 +14,10 @@
           "type": "string",
           "description": "The name of the person."
         },
-        "avatar": {
+        "email": {
           "type": "string",
-          "description": "The URL of the person's avatar."
+          "description": "The email address of the person.",
+          "format": "email"
         }
       },
       "required": [
@@ -40,7 +41,7 @@
         },
         "color": {
           "type": "string",
-          "description": "The color associated with the card, represented as a hex code or color name."
+          "description": "The color associated with the card (e.g., #3366BB)."
         }
       },
       "required": [
@@ -69,20 +70,24 @@
         },
         "installmentAmount": {
           "type": "number",
-          "description": "The amount for this specific installment."
+          "description": "The amount of each installment."
         },
         "paidInstallments": {
           "type": "number",
-          "description": "The number of installments already paid."
+          "description": "The number of installments that have been paid."
         },
         "totalInstallments": {
           "type": "number",
-          "description": "The total number of installments for the purchase."
+          "description": "The total number of installments."
         },
         "paymentDeadline": {
           "type": "string",
-          "description": "The deadline for the payment of this installment.",
+          "description": "The deadline for the payment of the installment.",
           "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the installment purchase"
         }
       },
       "required": [
@@ -113,80 +118,114 @@
           "type": "number",
           "description": "The amount of the expense."
         },
-        "description": {
-          "type": "string",
-          "description": "A description of the expense."
-        },
         "date": {
           "type": "string",
           "description": "The date of the expense.",
           "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the expense"
         }
       },
       "required": [
         "id",
         "cardId",
         "amount",
-        "description",
         "date"
       ]
     },
-    "Budget": {
+    "Income": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Budget",
+      "title": "Income",
       "type": "object",
-      "description": "Represents the user's budget information.",
+      "description": "Represents a monthly income entry for budget planning.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Budget entity."
+          "description": "Unique identifier for the Income entity."
         },
-        "monthlyIncome": {
+        "amount": {
           "type": "number",
-          "description": "The user's monthly income."
+          "description": "The amount of monthly income."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the income was received.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the income"
         }
       },
       "required": [
         "id",
-        "monthlyIncome"
+        "amount",
+        "date"
       ]
     }
   },
   "auth": {
     "providers": [
-      "google.com"
+      "password",
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/people/{personId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "Person",
+          "entityName": "user",
           "schema": {
             "$ref": "#/backend/entities/Person"
           },
-          "description": "Stores Person entities.",
+          "description": "Root collection for user-specific data.  Currently only serves as a path anchor for data segregation.",
           "params": [
             {
-              "name": "personId",
-              "description": "Unique identifier for the Person."
+              "name": "userId",
+              "description": "The unique identifier of the user."
             }
           ]
         }
       },
       {
-        "path": "/cards/{cardId}",
+        "path": "/users/{userId}/people/{personId}",
+        "definition": {
+          "entityName": "Person",
+          "schema": {
+            "$ref": "#/backend/entities/Person"
+          },
+          "description": "Stores person data, with path-based ownership.  This allows list operations to be secured by restricting access to documents within a specific user's path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "personId",
+              "description": "The unique identifier of the person."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/cards/{cardId}",
         "definition": {
           "entityName": "Card",
           "schema": {
             "$ref": "#/backend/entities/Card"
           },
-          "description": "Stores Card entities.",
+          "description": "Stores card data, with path-based ownership.  This allows list operations to be secured by restricting access to documents within a specific user's path.",
           "params": [
             {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
               "name": "cardId",
-              "description": "Unique identifier for the Card."
+              "description": "The unique identifier of the card."
             }
           ]
         }
@@ -198,15 +237,15 @@
           "schema": {
             "$ref": "#/backend/entities/PurchaseInstallment"
           },
-          "description": "Stores PurchaseInstallment entities owned by a specific user.",
+          "description": "Stores purchase installment data, with path-based ownership. This allows list operations to be secured by restricting access to documents within a specific user's path.",
           "params": [
             {
               "name": "userId",
-              "description": "Unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "purchaseInstallmentId",
-              "description": "Unique identifier for the PurchaseInstallment."
+              "description": "The unique identifier of the purchase installment."
             }
           ]
         }
@@ -218,40 +257,40 @@
           "schema": {
             "$ref": "#/backend/entities/Expense"
           },
-          "description": "Stores Expense entities owned by a specific user.",
+          "description": "Stores expense data, with path-based ownership. This allows list operations to be secured by restricting access to documents within a specific user's path.",
           "params": [
             {
               "name": "userId",
-              "description": "Unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "expenseId",
-              "description": "Unique identifier for the Expense."
+              "description": "The unique identifier of the expense."
             }
           ]
         }
       },
       {
-        "path": "/users/{userId}/budgets/{budgetId}",
+        "path": "/users/{userId}/incomes/{incomeId}",
         "definition": {
-          "entityName": "Budget",
+          "entityName": "Income",
           "schema": {
-            "$ref": "#/backend/entities/Budget"
+            "$ref": "#/backend/entities/Income"
           },
-          "description": "Stores Budget entities owned by a specific user.",
+          "description": "Stores income data, with path-based ownership. This allows list operations to be secured by restricting access to documents within a specific user's path.",
           "params": [
             {
               "name": "userId",
-              "description": "Unique identifier for the user."
+              "description": "The unique identifier of the user."
             },
             {
-              "name": "budgetId",
-              "description": "Unique identifier for the Budget."
+              "name": "incomeId",
+              "description": "The unique identifier of the income."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to address the 'auth/operation-not-allowed' error, which typically indicates that email/password authentication is not enabled in the Firebase project. While this is an authentication issue (outside of Firestore), the provided data structure will enable scalable and secure data management once the auth method is enabled.\n\nThe structure prioritizes Authorization Independence by avoiding `get()` calls in security rules. This is achieved via:\n\n1.  **Path-Based Ownership:** The `budgets`, `expenses`, and `purchaseInstallments` collections are nested under `/users/{userId}`. This directly associates data with the user and simplifies ownership-based rules.\n2.  **Denormalization (if needed in the future):** If cross-user access to purchase installments or expenses is required in the future (e.g., shared budgets), the `members` map (with user roles) can be denormalized into these documents. This would eliminate the need for `get()` calls to check group membership.\n\nQAPs (Rules are not Filters) are supported by:\n\n1.  **Structural Segregation:** Each collection contains homogeneous data with consistent security requirements. This avoids mixing public and private data in the same collection, allowing for secure `list` operations. For example, all documents in `/users/{userId}/expenses` are private to that user.\n\nThe data structure also ensures data clarity and predictability through explicit state modeling (though not explicitly in the provided schemas), semantic naming conventions, and predictable schema. For example, cada colección usa ID en la ruta del documento. Usar convenciones de nomenclatura consistentes para los campos de autorización (por ejemplo, `ownerId`) mejoraría aún más la claridad."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, Clarity of Intent, and support secure list operations (QAPs). It leverages denormalization to avoid hierarchical authorization dependencies, thus enabling atomic operations and simplifying security rules. Segregation is used to create homogeneous security postures within collections. Explicit state modeling and semantic naming conventions are applied for data clarity and predictability.\n\n**Authorization Independence:** The structure avoids `get()` calls in security rules by denormalizing authorization data. For example, if access to `PurchaseInstallment` documents depended on the `Person` or `Card`'s attributes, those attributes would be copied into the `PurchaseInstallment` documents. This eliminates the need to fetch parent documents during authorization, simplifying rules and improving performance.\n\n**QAPs (Rules are not Filters):** Path-based ownership (`/users/{userId}/...`) is used for private data. This allows listing operations to be secured by restricting access to documents within a specific user's path. Collaborative data, if any, would use a membership map to control access, but in this scenario, we are relying on path-based ownership.\n\n**Structure Overview:**\n*   `/users/{userId}`: Stores user-specific data (currently not in schema but allows for future expansion).\n*   `/users/{userId}/people/{personId}`: Stores people associated with a user.\n*   `/users/{userId}/cards/{cardId}`: Stores cards associated with a user.\n*   `/users/{userId}/purchaseInstallments/{purchaseInstallmentId}`: Stores purchase installments for a user, referencing cards and people.\n*   `/users/{userId}/expenses/{expenseId}`: Stores expenses for a user, referencing cards.\n*   `/users/{userId}/incomes/{incomeId}`: Stores income entries for a user."
   }
 }
