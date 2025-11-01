@@ -190,7 +190,11 @@ export default function PurchasesPage() {
 
   const totalFilteredInstallmentAmount = useMemo(() => {
     return sortedAndFilteredPurchases.reduce((acc, purchase) => {
-      return acc + purchase.installmentAmount;
+      // Only include purchases that have started (paid installments > 0)
+      if (purchase.paidInstallments > 0) {
+        return acc + purchase.installmentAmount;
+      }
+      return acc;
     }, 0);
   }, [sortedAndFilteredPurchases]);
 
@@ -212,19 +216,36 @@ export default function PurchasesPage() {
       return acc;
     }, {} as Record<string, PurchaseInstallment[]>);
 
+    let totalAmountForExport = 0;
+
     const rows = Object.entries(groupedByCard).map(([cardId, purchases]) => {
       const cardName = getCard(cardId)?.name || 'N/A';
-      const purchaseLines = purchases.map(p => {
+      
+      const inProgressPurchases = purchases.filter(p => p.paidInstallments > 0);
+      const notStartedPurchases = purchases.filter(p => p.paidInstallments === 0);
+
+      const purchaseLines = inProgressPurchases.map(p => {
         const progress = `${p.paidInstallments}/${p.totalInstallments}`;
         const amount = formatCurrency(p.installmentAmount);
+        totalAmountForExport += p.installmentAmount;
         return `${amount} --> ${p.description} --> ${progress}`;
       }).join("\n");
-      return `${cardName}\n${purchaseLines}`;
+
+      const notStartedLines = notStartedPurchases.map(p => {
+        const progress = `${p.paidInstallments}/${p.totalInstallments}`;
+        return `compra ${p.description} no salio, ${progress}`;
+      }).join("\n");
+
+      let cardText = `${cardName}\n${purchaseLines}`;
+      if (notStartedLines) {
+        cardText += `\n${notStartedLines}`;
+      }
+      
+      return cardText;
     }).join("\n\n");
 
-
-    const totalAmount = sortedAndFilteredPurchases.reduce((sum, p) => sum + p.installmentAmount, 0);
-    const totalText = `\n\n--------------------\n${sortedAndFilteredPurchases.length} compras por ${formatCurrency(totalAmount)}`;
+    
+    const totalText = `\n\n--------------------\n${inProgressPurchases.length} compras por ${formatCurrency(totalAmountForExport)}`;
     
     const exportText = rows + totalText;
 
