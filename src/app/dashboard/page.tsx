@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -8,12 +9,15 @@ import { DollarSign, CreditCard, Calendar, Zap } from "lucide-react";
 import { format, getDaysInMonth } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
-import type { PurchaseInstallment, Expense, Card as CardType, MonthlyIncome } from "@/app/lib/definitions";
+import type { PurchaseInstallment, Expense, Card as CardType, MonthlyIncome, Person } from "@/app/lib/definitions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const currentMonthStr = format(new Date(), 'yyyy-MM');
+
+  const [filterPersonId, setFilterPersonId] = useState<string>('');
 
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
@@ -23,6 +27,9 @@ export default function DashboardPage() {
 
   const cardsCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/cards`) : null, [firestore, user]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
+
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
+  const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const incomeQuery = useMemoFirebase(() => 
     firestore && user ? query(collection(firestore, `users/${user.uid}/incomes`), where('month', '==', currentMonthStr)) : null
@@ -56,10 +63,15 @@ export default function DashboardPage() {
   const dailyBudget = remainingBudget > 0 && remainingDays > 0 ? remainingBudget / remainingDays : 0;
   const weeklyBudget = dailyBudget * 7;
 
-  const spendingByCard = cards?.map(card => {
-    const cardPurchases = purchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.installmentAmount * (p.totalInstallments - p.paidInstallments), 0) || 0;
-    return { name: card.name, total: cardPurchases, fill: card.color };
-  }) || [];
+  const spendingByCard = useMemo(() => {
+    const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
+    
+    return cards?.map(card => {
+      const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.installmentAmount * (p.totalInstallments - p.paidInstallments), 0) || 0;
+      return { name: card.name, total: cardPurchases, fill: card.color };
+    }) || [];
+  }, [cards, purchases, filterPersonId]);
+
 
   const chartConfig = {
     total: {
@@ -71,7 +83,7 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
   }
   
-  const isLoading = purchasesLoading || expensesLoading || cardsLoading || incomeLoading;
+  const isLoading = purchasesLoading || expensesLoading || cardsLoading || incomeLoading || peopleLoading;
 
   if (isLoading) {
     return <div>Cargando...</div>;
@@ -142,8 +154,21 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Deuda por Tarjeta</CardTitle>
-          <CardDescription>Monto total pendiente por tarjeta de crédito.</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Deuda por Tarjeta</CardTitle>
+                <CardDescription>Monto total pendiente por tarjeta de crédito.</CardDescription>
+              </div>
+              <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Filtrar por persona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las personas</SelectItem>
+                  {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
