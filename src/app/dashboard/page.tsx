@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import { DollarSign, CreditCard, Calendar, Zap } from "lucide-react";
+import { DollarSign, CreditCard, Calendar, Zap, WalletCards } from "lucide-react";
 import { format, getDaysInMonth } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
@@ -38,20 +38,27 @@ export default function DashboardPage() {
   
   const monthlyIncome = incomeData?.[0]?.amount || 0;
 
-  const totalOutstanding = purchases?.reduce((acc, p) => {
-    const remainingInstallments = p.totalInstallments - p.paidInstallments;
-    return acc + remainingInstallments * p.installmentAmount;
-  }, 0) || 0;
+  const totalOutstanding = useMemo(() => {
+    const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
+    return filteredPurchases?.reduce((acc, p) => {
+      const remainingInstallments = p.totalInstallments - p.paidInstallments;
+      return acc + remainingInstallments * p.installmentAmount;
+    }, 0) || 0;
+  }, [purchases, filterPersonId]);
   
   const totalMonthlyFixedExpenses = expenses?.reduce((acc, e) => acc + e.amount, 0) || 0;
 
-  const currentMonthInstallments = purchases?.reduce((acc, p) => {
-    const remainingInstallments = p.totalInstallments - p.paidInstallments;
-    if (remainingInstallments > 0) {
-      return acc + p.installmentAmount;
-    }
-    return acc;
-  }, 0) || 0;
+  const currentMonthInstallments = useMemo(() => {
+    const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
+    return filteredPurchases?.reduce((acc, p) => {
+      const remainingInstallments = p.totalInstallments - p.paidInstallments;
+      if (remainingInstallments > 0) {
+        return acc + p.installmentAmount;
+      }
+      return acc;
+    }, 0) || 0;
+  }, [purchases, filterPersonId]);
+
 
   const totalMonthlySpending = totalMonthlyFixedExpenses + currentMonthInstallments;
   
@@ -67,7 +74,10 @@ export default function DashboardPage() {
     const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
     
     return cards?.map(card => {
-      const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.installmentAmount * (p.totalInstallments - p.paidInstallments), 0) || 0;
+      const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => {
+        const remainingInstallments = p.totalInstallments - p.paidInstallments;
+        return acc + remainingInstallments * p.installmentAmount;
+      }, 0) || 0;
       return { name: card.name, total: cardPurchases, fill: card.color };
     }) || [];
   }, [cards, purchases, filterPersonId]);
@@ -91,10 +101,21 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Deuda Total Pendiente</CardTitle>
+           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
+               <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
+                <SelectTrigger className="w-full sm:w-[150px] h-8 mt-2 text-xs">
+                  <SelectValue placeholder="Filtrar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las personas</SelectItem>
+                  {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -109,7 +130,17 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
-            <p className="text-xs text-muted-foreground">Incluye cuotas y gastos fijos.</p>
+            <p className="text-xs text-muted-foreground">Suma de cuotas y gastos fijos.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Deuda Consolidada</CardTitle>
+            <WalletCards className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding + totalMonthlyFixedExpenses)}</div>
+            <p className="text-xs text-muted-foreground">Total tarjetas + gastos fijos.</p>
           </CardContent>
         </Card>
       </div>
@@ -157,17 +188,8 @@ export default function DashboardPage() {
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle>Deuda por Tarjeta</CardTitle>
-                <CardDescription>Monto total pendiente por tarjeta de crédito.</CardDescription>
+                <CardDescription>Monto total pendiente por tarjeta de crédito ({filterPersonId ? people?.find(p=>p.id === filterPersonId)?.name : 'Todos'}).</CardDescription>
               </div>
-              <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filtrar por persona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las personas</SelectItem>
-                  {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
         </CardHeader>
         <CardContent>
