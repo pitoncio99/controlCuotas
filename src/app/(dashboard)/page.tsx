@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import { purchases, expenses, cards, people } from '@/app/lib/data';
+import { purchases, expenses, cards, people } from "@/app/lib/data";
 import { DollarSign, CreditCard, Users, Cpu, MemoryStick, Server } from "lucide-react";
 import { format } from 'date-fns';
 
@@ -32,8 +32,7 @@ export default function DashboardPage() {
   
   const spendingByCard = cards.map(card => {
     const cardPurchases = purchases.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.amountPerInstallment * (p.totalInstallments - p.installmentsPaid), 0);
-    const cardExpenses = expenses.filter(e => e.cardId === card.id).reduce((acc, e) => acc + e.amount, 0);
-    return { name: card.name, total: cardPurchases + cardExpenses, fill: card.color };
+    return { name: card.name, total: cardPurchases, fill: card.color };
   });
 
   const chartConfig = {
@@ -62,7 +61,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalMonthlySpending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <p className="text-xs text-muted-foreground">Incluye cuotas y gastos únicos.</p>
+            <p className="text-xs text-muted-foreground">Incluye cuotas y gastos generales.</p>
           </CardContent>
         </Card>
         <Card>
@@ -80,7 +79,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Gasto por Tarjeta</CardTitle>
+            <CardTitle>Deuda por Tarjeta</CardTitle>
             <CardDescription>Monto total pendiente por tarjeta de crédito.</CardDescription>
           </CardHeader>
           <CardContent>

@@ -61,9 +61,9 @@ export const purchases: Purchase[] = [
 ];
 
 export const expenses: Expense[] = [
-    { id: '1', description: 'Netflix Subscription', cardId: '1', amount: 15.99, date: '2024-07-01T10:00:00Z' },
-    { id: '2', description: 'Gasoline', cardId: '2', amount: 55.20, date: '2024-07-03T10:00:00Z' },
-    { id: '3', description: 'Dinner with friends', cardId: '3', amount: 120.00, date: '2024-07-05T10:00:00Z' },
+    { id: '1', description: 'Netflix Subscription', amount: 15.99, date: '2024-07-01T10:00:00Z' },
+    { id: '2', description: 'Gasoline', amount: 55.20, date: '2024-07-03T10:00:00Z' },
+    { id: '3', description: 'Dinner with friends', amount: 120.00, date: '2024-07-05T10:00:00Z' },
 ];
 
 

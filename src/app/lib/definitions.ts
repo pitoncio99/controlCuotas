@@ -25,7 +25,6 @@ export type Purchase = {
 export type Expense = {
   id: string;
   description: string;
-  cardId: string;
   amount: number;
   date: string; // ISO date string
 };
