@@ -8,8 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Person } from '@/app/lib/definitions';
-import { useFirestore } from '@/firebase';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   name: z.string().min(2, {
@@ -36,29 +36,23 @@ export function PersonForm({ person, onSave }: PersonFormProps) {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!firestore) return;
 
-    try {
-      if (person?.id) {
-        await setDoc(doc(firestore, 'people', person.id), data, { merge: true });
-        toast({
-          title: 'Persona Actualizada',
-          description: `La persona "${data.name}" ha sido actualizada.`,
-        });
-      } else {
-        await addDoc(collection(firestore, 'people'), data);
-        toast({
-          title: 'Persona Agregada',
-          description: `La persona "${data.name}" ha sido agregada.`,
-        });
-      }
-      onSave();
-    } catch (error) {
-      console.error("Error saving person: ", error);
+    if (person?.id) {
+      const personRef = doc(firestore, 'people', person.id);
+      setDocumentNonBlocking(personRef, data, { merge: true });
       toast({
-        variant: "destructive",
-        title: 'Error',
-        description: 'No se pudo guardar la persona.',
+        title: 'Persona Actualizada',
+        description: `La persona "${data.name}" ha sido actualizada.`,
+      });
+    } else {
+      const newPersonId = doc(collection(firestore, 'people')).id;
+      const personRef = doc(firestore, 'people', newPersonId);
+      setDocumentNonBlocking(personRef, { id: newPersonId, ...data }, { merge: true });
+      toast({
+        title: 'Persona Agregada',
+        description: `La persona "${data.name}" ha sido agregada.`,
       });
     }
+    onSave();
   }
 
   return (

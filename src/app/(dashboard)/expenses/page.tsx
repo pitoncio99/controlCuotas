@@ -10,9 +10,8 @@ import type { Expense } from '@/app/lib/definitions';
 import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ExpenseForm } from './components/expense-form';
-import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,15 +21,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
-  const { data: expenses, loading } = useCollection<Expense>(firestore ? collection(firestore, 'expenses') : null);
+  const expensesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'expenses') : null, [firestore]);
+  const { data: expenses, isLoading } = useCollection<Expense>(expensesCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | undefined>(undefined);
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
@@ -49,8 +49,9 @@ export default function ExpensesPage() {
   
   const handleDelete = async (id: string) => {
     if (firestore) {
-      await deleteDoc(doc(firestore, 'expenses', id));
+      deleteDocumentNonBlocking(doc(firestore, 'expenses', id));
     }
+    setDeletingExpense(undefined);
   };
 
   const formatCurrency = (value: number) => {
@@ -81,12 +82,12 @@ export default function ExpensesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && (
+              {isLoading && (
                  <TableRow>
                   <TableCell colSpan={4} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
-              {!loading && (expenses || []).map((expense) => {
+              {!isLoading && (expenses || []).map((expense) => {
                 return (
                   <TableRow key={expense.id}>
                     <TableCell>
@@ -106,23 +107,7 @@ export default function ExpensesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(expense)}>Editar</DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Esto eliminará permanentemente el gasto.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(expense.id)}>Eliminar</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenuItem onSelect={() => setDeletingExpense(expense)} className="text-destructive">Eliminar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -144,6 +129,20 @@ export default function ExpensesPage() {
           <ExpenseForm expense={editingExpense} onSave={() => handleSheetClose()} />
         </SheetContent>
       </Sheet>
+      <AlertDialog open={!!deletingExpense} onOpenChange={(open) => !open && setDeletingExpense(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente el gasto.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deletingExpense!.id)}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -1,28 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Calendar, Zap } from 'lucide-react';
 import { format, getDaysInMonth } from 'date-fns';
-import { useCollection } from '@/firebase';
-import { collection, doc, setDoc, query, where } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 import type { Purchase, Expense, MonthlyIncome } from '@/app/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
+import { setDocumentNonBlocking } from '@/firebase';
 
 export default function BudgetPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const currentMonthStr = format(new Date(), 'yyyy-MM');
 
-  const { data: incomeData, loading: incomeLoading } = useCollection<MonthlyIncome>(
+  const incomeQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'income'), where('month', '==', currentMonthStr)) : null
-  );
-  const { data: expenses, loading: expensesLoading } = useCollection<Expense>(firestore ? collection(firestore, 'expenses') : null);
-  const { data: purchases, loading: purchasesLoading } = useCollection<Purchase>(firestore ? collection(firestore, 'purchases') : null);
+  , [firestore, currentMonthStr]);
+  const { data: incomeData, isLoading: incomeLoading } = useCollection<MonthlyIncome>(incomeQuery);
+
+  const expensesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'expenses') : null, [firestore]);
+  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesCollection);
+
+  const purchasesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'purchases') : null, [firestore]);
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchasesCollection);
   
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   
@@ -59,24 +64,19 @@ export default function BudgetPage() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
   }
 
-  const handleSaveIncome = async () => {
+  const handleSaveIncome = () => {
     if (!firestore) return;
     const incomeId = incomeData && incomeData.length > 0 ? incomeData[0].id : doc(collection(firestore, 'income')).id;
     
-    try {
-        await setDoc(doc(firestore, 'income', incomeId), { month: currentMonthStr, amount: monthlyIncome }, { merge: true });
-        toast({
-            title: 'Ingreso guardado',
-            description: `Tu ingreso de ${formatCurrency(monthlyIncome)} para ${format(new Date(), 'MMMM')} ha sido guardado.`,
-        });
-    } catch (error) {
-        console.error("Error saving income:", error);
-        toast({
-            variant: "destructive",
-            title: 'Error',
-            description: 'No se pudo guardar el ingreso.',
-        });
-    }
+    const incomeDocRef = doc(firestore, 'income', incomeId);
+    const dataToSave = { id: incomeId, month: currentMonthStr, amount: monthlyIncome };
+
+    setDocumentNonBlocking(incomeDocRef, dataToSave, { merge: true });
+
+    toast({
+        title: 'Guardando ingreso...',
+        description: `Tu ingreso de ${formatCurrency(monthlyIncome)} para ${format(new Date(), 'MMMM')} está siendo guardado.`,
+    });
   };
   
   const isLoading = incomeLoading || expensesLoading || purchasesLoading;

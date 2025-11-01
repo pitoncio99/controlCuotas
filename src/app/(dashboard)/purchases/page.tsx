@@ -9,8 +9,8 @@ import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, deleteDoc, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { Purchase, Card as CardType, Person } from '@/app/lib/definitions';
 import {
   AlertDialog,
@@ -21,17 +21,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export default function PurchasesPage() {
   const firestore = useFirestore();
-  const { data: purchases, loading: purchasesLoading } = useCollection<Purchase>(firestore ? collection(firestore, 'purchases') : null);
-  const { data: cards, loading: cardsLoading } = useCollection<CardType>(firestore ? collection(firestore, 'cards') : null);
-  const { data: people, loading: peopleLoading } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+  const purchasesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'purchases') : null, [firestore]);
+  const { data: purchases, isLoading: purchasesLoading } = useCollection<Purchase>(purchasesCollection);
+
+  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
+
+  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState<Purchase | undefined>(undefined);
+  const [deletingPurchase, setDeletingPurchase] = useState<Purchase | undefined>(undefined);
 
   const handleEdit = (purchase: Purchase) => {
     setEditingPurchase(purchase);
@@ -48,10 +53,11 @@ export default function PurchasesPage() {
     setEditingPurchase(undefined);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (firestore) {
-      await deleteDoc(doc(firestore, 'purchases', id));
+      deleteDocumentNonBlocking(doc(firestore, 'purchases', id));
     }
+    setDeletingPurchase(undefined);
   };
 
   const getCardName = (cardId: string) => cards?.find(c => c.id === cardId)?.name || 'N/A';
@@ -121,23 +127,7 @@ export default function PurchasesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(purchase)}>Editar</DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Esto eliminará permanentemente la compra.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(purchase.id)}>Eliminar</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenuItem onSelect={() => setDeletingPurchase(purchase)} className="text-destructive">Eliminar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -148,7 +138,7 @@ export default function PurchasesPage() {
           </Table>
         </CardContent>
       </Card>
-       <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
+      <Sheet open={sheetOpen} onOpenChange={handleSheetClose}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingPurchase ? 'Editar Compra' : 'Agregar Compra'}</SheetTitle>
@@ -159,6 +149,20 @@ export default function PurchasesPage() {
           <PurchaseForm purchase={editingPurchase} onSave={handleSheetClose} />
         </SheetContent>
       </Sheet>
+      <AlertDialog open={!!deletingPurchase} onOpenChange={(open) => !open && setDeletingPurchase(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente la compra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deletingPurchase!.id)}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

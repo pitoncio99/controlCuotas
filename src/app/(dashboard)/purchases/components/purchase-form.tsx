@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Purchase, Card, Person } from '@/app/lib/definitions';
-import { useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   description: z.string().min(2, {
@@ -40,8 +40,10 @@ interface PurchaseFormProps {
 
 export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
   const firestore = useFirestore();
-  const { data: cards } = useCollection<Card>(firestore ? collection(firestore, 'cards') : null);
-  const { data: people } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const { data: cards } = useCollection<Card>(cardsCollection);
+  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  const { data: people } = useCollection<Person>(peopleCollection);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -64,29 +66,23 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
       purchaseDate: data.purchaseDate.toISOString(),
     };
 
-    try {
-      if (purchase?.id) {
-        await setDoc(doc(firestore, 'purchases', purchase.id), purchaseData, { merge: true });
-        toast({
-          title: 'Compra Actualizada',
-          description: `La compra "${data.description}" ha sido actualizada.`,
-        });
-      } else {
-        await addDoc(collection(firestore, 'purchases'), purchaseData);
-        toast({
-          title: 'Compra Guardada',
-          description: `La compra "${data.description}" ha sido guardada.`,
-        });
-      }
-      onSave();
-    } catch (error) {
-      console.error("Error saving purchase: ", error);
+    if (purchase?.id) {
+      const purchaseRef = doc(firestore, 'purchases', purchase.id);
+      setDocumentNonBlocking(purchaseRef, purchaseData, { merge: true });
       toast({
-        variant: "destructive",
-        title: 'Error',
-        description: 'No se pudo guardar la compra.',
+        title: 'Compra Actualizada',
+        description: `La compra "${data.description}" ha sido actualizada.`,
+      });
+    } else {
+      const newPurchaseId = doc(collection(firestore, 'purchases')).id;
+      const purchaseRef = doc(firestore, 'purchases', newPurchaseId);
+      setDocumentNonBlocking(purchaseRef, { id: newPurchaseId, ...purchaseData }, { merge: true });
+      toast({
+        title: 'Compra Guardada',
+        description: `La compra "${data.description}" ha sido guardada.`,
       });
     }
+    onSave();
   }
 
   return (

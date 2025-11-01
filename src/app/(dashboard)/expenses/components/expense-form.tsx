@@ -13,8 +13,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Expense } from '@/app/lib/definitions';
-import { useFirestore } from '@/firebase';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   description: z.string().min(2, {
@@ -52,29 +52,23 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
       date: data.date.toISOString(),
     };
 
-    try {
-      if (expense?.id) {
-        await setDoc(doc(firestore, 'expenses', expense.id), expenseData, { merge: true });
-        toast({
-          title: 'Gasto Actualizado',
-          description: `El gasto "${data.description}" ha sido actualizado.`,
-        });
-      } else {
-        await addDoc(collection(firestore, 'expenses'), expenseData);
-        toast({
-          title: 'Gasto Guardado',
-          description: `El gasto "${data.description}" ha sido guardado.`,
-        });
-      }
-      onSave();
-    } catch (error) {
-       console.error("Error saving expense: ", error);
-       toast({
-        variant: "destructive",
-        title: 'Error',
-        description: 'No se pudo guardar el gasto.',
+    if (expense?.id) {
+      const expenseRef = doc(firestore, 'expenses', expense.id);
+      setDocumentNonBlocking(expenseRef, expenseData, { merge: true });
+      toast({
+        title: 'Gasto Actualizado',
+        description: `El gasto "${data.description}" ha sido actualizado.`,
+      });
+    } else {
+      const newExpenseId = doc(collection(firestore, 'expenses')).id;
+      const expenseRef = doc(firestore, 'expenses', newExpenseId);
+      setDocumentNonBlocking(expenseRef, { id: newExpenseId, ...expenseData }, { merge: true });
+      toast({
+        title: 'Gasto Guardado',
+        description: `El gasto "${data.description}" ha sido guardado.`,
       });
     }
+    onSave();
   }
 
   return (

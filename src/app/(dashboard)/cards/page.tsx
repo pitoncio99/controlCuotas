@@ -9,9 +9,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import type { Card as CardType } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CardForm } from './components/card-form';
-import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,15 +20,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export default function CardsPage() {
   const firestore = useFirestore();
-  const { data: cards, loading } = useCollection<CardType>(firestore ? collection(firestore, 'cards') : null);
+  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const { data: cards, isLoading } = useCollection<CardType>(cardsCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardType | undefined>(undefined);
+  const [deletingCard, setDeletingCard] = useState<CardType | undefined>(undefined);
+
 
   const handleEdit = (card: CardType) => {
     setEditingCard(card);
@@ -46,10 +47,11 @@ export default function CardsPage() {
     setEditingCard(undefined);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (firestore) {
-      await deleteDoc(doc(firestore, 'cards', id));
+      deleteDocumentNonBlocking(doc(firestore, 'cards', id));
     }
+    setDeletingCard(undefined);
   };
 
   return (
@@ -74,12 +76,12 @@ export default function CardsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && (
+              {isLoading && (
                 <TableRow>
                   <TableCell colSpan={2} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
-              {!loading && (cards || []).map((card) => (
+              {!isLoading && (cards || []).map((card) => (
                 <TableRow key={card.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -96,23 +98,7 @@ export default function CardsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(card)}>Editar</DropdownMenuItem>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Esto eliminará permanentemente la tarjeta.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(card.id)}>Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DropdownMenuItem onSelect={() => setDeletingCard(card)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -133,6 +119,20 @@ export default function CardsPage() {
           <CardForm card={editingCard} onSave={() => handleSheetClose()} />
         </SheetContent>
       </Sheet>
+      <AlertDialog open={!!deletingCard} onOpenChange={(open) => !open && setDeletingCard(undefined)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente la tarjeta.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDelete(deletingCard!.id)}>Eliminar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

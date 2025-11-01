@@ -8,8 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Card } from '@/app/lib/definitions';
-import { useFirestore } from '@/firebase';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   name: z.string().min(2, {
@@ -38,32 +38,25 @@ export function CardForm({ card, onSave }: CardFormProps) {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!firestore) return;
     
-    try {
-      if (card?.id) {
-        // Update existing card
-        const cardRef = doc(firestore, 'cards', card.id);
-        await setDoc(cardRef, data, { merge: true });
-        toast({
-          title: 'Tarjeta Actualizada',
-          description: `La tarjeta "${data.name}" ha sido actualizada.`,
-        });
-      } else {
-        // Add new card
-        await addDoc(collection(firestore, 'cards'), data);
-        toast({
-          title: 'Tarjeta Agregada',
-          description: `La tarjeta "${data.name}" ha sido agregada.`,
-        });
-      }
-      onSave();
-    } catch (error) {
-      console.error("Error saving card: ", error);
+    if (card?.id) {
+      // Update existing card
+      const cardRef = doc(firestore, 'cards', card.id);
+      setDocumentNonBlocking(cardRef, data, { merge: true });
       toast({
-        variant: "destructive",
-        title: 'Error',
-        description: 'No se pudo guardar la tarjeta.',
+        title: 'Tarjeta Actualizada',
+        description: `La tarjeta "${data.name}" ha sido actualizada.`,
+      });
+    } else {
+      // Add new card
+      const newCardId = doc(collection(firestore, 'cards')).id;
+      const cardRef = doc(firestore, 'cards', newCardId);
+      setDocumentNonBlocking(cardRef, { id: newCardId, ...data }, { merge: true });
+      toast({
+        title: 'Tarjeta Agregada',
+        description: `La tarjeta "${data.name}" ha sido agregada.`,
       });
     }
+    onSave();
   }
 
   return (

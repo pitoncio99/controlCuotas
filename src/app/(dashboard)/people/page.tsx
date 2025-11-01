@@ -10,9 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Person } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PersonForm } from './components/person-form';
-import { useFirestore } from '@/firebase';
-import { useCollection } from '@/firebase';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,15 +21,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export default function PeoplePage() {
   const firestore = useFirestore();
-  const { data: people, loading } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+  const peopleCollection = useMemoFirebase(() => firestore ? collection(firestore, 'people') : null, [firestore]);
+  const { data: people, isLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | undefined>(undefined);
+  const [deletingPerson, setDeletingPerson] = useState<Person | undefined>(undefined);
 
   const handleEdit = (person: Person) => {
     setEditingPerson(person);
@@ -47,10 +47,11 @@ export default function PeoplePage() {
     setEditingPerson(undefined);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (firestore) {
-      await deleteDoc(doc(firestore, 'people', id));
+      deleteDocumentNonBlocking(doc(firestore, 'people', id));
     }
+    setDeletingPerson(undefined);
   };
 
 
@@ -76,12 +77,12 @@ export default function PeoplePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && (
+              {isLoading && (
                 <TableRow>
                   <TableCell colSpan={2} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
-              {!loading && (people || []).map((person) => (
+              {!isLoading && (people || []).map((person) => (
                 <TableRow key={person.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -101,23 +102,7 @@ export default function PeoplePage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(person)}>Editar</DropdownMenuItem>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Esto eliminará permanentemente a la persona.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(person.id)}>Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DropdownMenuItem onSelect={() => setDeletingPerson(person)} className="text-destructive">Eliminar</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -138,6 +123,20 @@ export default function PeoplePage() {
           <PersonForm person={editingPerson} onSave={() => handleSheetClose()} />
         </SheetContent>
       </Sheet>
+      <AlertDialog open={!!deletingPerson} onOpenChange={(open) => !open && setDeletingPerson(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente a la persona.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deletingPerson!.id)}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
