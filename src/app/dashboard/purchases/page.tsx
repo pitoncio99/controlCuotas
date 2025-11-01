@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown, CalendarDays, ClipboardCopy } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
@@ -26,6 +26,7 @@ import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { addMonths, format } from 'date-fns';
+import { useFilter } from '../components/filter-context';
 
 
 type ProgressUpdateAction = {
@@ -37,6 +38,7 @@ type ProgressUpdateAction = {
 export default function PurchasesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { filterPersonId } = useFilter();
   
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
@@ -52,7 +54,6 @@ export default function PurchasesPage() {
   const [deletingPurchase, setDeletingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdateAction>(null);
 
-  const [filterPersonId, setFilterPersonId] = useState<string>('');
   const [filterCardId, setFilterCardId] = useState<string>('');
 
   const handleEdit = (purchase: PurchaseInstallment) => {
@@ -130,6 +131,41 @@ export default function PurchasesPage() {
     }, 0);
   }, [filteredPurchases]);
 
+  const handleExport = () => {
+    if (filteredPurchases.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No hay datos para exportar",
+        description: "Aplica filtros diferentes o agrega compras.",
+      });
+      return;
+    }
+
+    const header = "Descripción\tMonto Cuota\tProgreso\tTarjeta\n";
+    const rows = filteredPurchases.map(p => {
+      const cardName = getCard(p.cardId)?.name || 'N/A';
+      const progress = `${p.paidInstallments}/${p.totalInstallments}`;
+      const amount = formatCurrency(p.installmentAmount);
+      return `${p.description}\t${amount}\t${progress}\t${cardName}`;
+    }).join("\n");
+
+    const exportText = header + rows;
+
+    navigator.clipboard.writeText(exportText).then(() => {
+      toast({
+        title: "¡Copiado al portapapeles!",
+        description: "Los datos de las compras filtradas han sido copiados.",
+      });
+    }).catch(err => {
+      console.error('Error al copiar: ', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron copiar los datos al portapapeles.",
+      });
+    });
+  };
+
   return (
     <>
       <Card>
@@ -138,22 +174,19 @@ export default function PurchasesPage() {
             <CardTitle>Compras en Cuotas</CardTitle>
             <CardDescription>Administra todas tus compras realizadas en cuotas.</CardDescription>
           </div>
-          <Button size="sm" className="gap-2" onClick={handleAdd}>
-            <PlusCircle className="h-4 w-4" />
-            Agregar Compra
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={handleExport}>
+              <ClipboardCopy className="h-4 w-4" />
+              Exportar
+            </Button>
+            <Button size="sm" className="gap-2" onClick={handleAdd}>
+              <PlusCircle className="h-4 w-4" />
+              Agregar Compra
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
-            <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filtrar por persona" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las personas</SelectItem>
-                {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <Select onValueChange={(value) => setFilterCardId(value === 'all' ? '' : value)} defaultValue="all">
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por tarjeta" />
