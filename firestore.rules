@@ -2,10 +2,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // WARNING: These rules are completely open and insecure. 
-    // They are intended for development purposes only.
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Helper function to check if the user is authenticated.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the user is the owner of the document.
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Rules for user-specific data.
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Rules for the global 'cards' collection.
+    match /cards/{cardId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Allow authenticated users to create/update cards for now
     }
   }
 }

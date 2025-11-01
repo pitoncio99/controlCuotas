@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutGrid },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/purchases', label: 'Compras', icon: Receipt },
   { href: '/cards', label: 'Tarjetas', icon: CreditCard },
   { href: '/people', label: 'Personas', icon: Users },
@@ -46,7 +46,7 @@ export function AppNav() {
             <SidebarMenuItem key={href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === href}
+                isActive={pathname.startsWith(href)}
                 tooltip={label}
               >
                 <Link href={href}>
