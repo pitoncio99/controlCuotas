@@ -12,6 +12,8 @@ import { PurchaseForm } from './components/purchase-form';
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { PurchaseInstallment, Card as CardType, Person } from '@/app/lib/definitions';
+import { addMonths, format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +32,7 @@ export default function PurchasesPage() {
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
 
-  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const cardsCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/cards`) : null, [firestore, user]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
 
   const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
@@ -68,6 +70,16 @@ export default function PurchasesPage() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
   }
+
+  const calculateLastPaymentDate = (purchase: PurchaseInstallment) => {
+    const startDate = new Date(purchase.paymentDeadline);
+    const remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
+    if (remainingInstallments <= 0) return 'Pagado';
+    
+    // We add totalInstallments - 1 because the first payment is considered month 0
+    const lastPaymentDate = addMonths(startDate, purchase.totalInstallments - 1);
+    return `finales de ${format(lastPaymentDate, 'MMMM yyyy', { locale: es })}`;
+  }
   
   const isLoading = purchasesLoading || cardsLoading || peopleLoading;
 
@@ -93,6 +105,7 @@ export default function PurchasesPage() {
                 <TableHead className="hidden md:table-cell">Tarjeta</TableHead>
                 <TableHead className="hidden lg:table-cell text-right">Monto Cuota</TableHead>
                 <TableHead className="text-center">Progreso</TableHead>
+                <TableHead className="hidden md:table-cell">Último Pago</TableHead>
                 <TableHead className="text-right">Total Restante</TableHead>
                 <TableHead className="w-[100px] text-right">Acciones</TableHead>
               </TableRow>
@@ -100,7 +113,7 @@ export default function PurchasesPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">Cargando...</TableCell>
+                  <TableCell colSpan={8} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
               {!isLoading && (purchases || []).map((purchase) => {
@@ -119,6 +132,7 @@ export default function PurchasesPage() {
                     <TableCell className="text-center">
                       <Badge variant="outline" className="font-mono">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
                     </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{calculateLastPaymentDate(purchase)}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
