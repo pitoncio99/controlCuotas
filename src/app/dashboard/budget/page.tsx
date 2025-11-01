@@ -40,21 +40,17 @@ export default function BudgetPage() {
     }
   }, [incomeData]);
 
-  const currentMonthExpenses = expenses
-    ?.filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonthStr)
-    .reduce((acc, e) => acc + e.amount, 0) || 0;
+  const totalMonthlyFixedExpenses = expenses?.reduce((acc, e) => acc + e.amount, 0) || 0;
 
   const currentMonthInstallments = purchases?.reduce((acc, p) => {
     const remainingInstallments = p.totalInstallments - p.paidInstallments;
     if (remainingInstallments > 0) {
-      // This logic assumes an installment is due every month. 
-      // A more precise calculation might be needed based on purchaseDate.
       return acc + p.installmentAmount;
     }
     return acc;
   }, 0) || 0;
   
-  const totalMonthlyCommitments = currentMonthExpenses + currentMonthInstallments;
+  const totalMonthlyCommitments = totalMonthlyFixedExpenses + currentMonthInstallments;
   const remainingBudget = monthlyIncome - totalMonthlyCommitments;
   
   const daysInMonth = getDaysInMonth(new Date());

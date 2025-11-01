@@ -6,11 +6,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Expense } from '@/app/lib/definitions';
 import { useFirestore, setDocumentNonBlocking, useUser } from '@/firebase';
@@ -22,9 +17,6 @@ const FormSchema = z.object({
   }),
   amount: z.coerce.number().positive({
       message: 'El monto debe ser un número positivo.'
-  }),
-  date: z.date({
-    required_error: 'Se requiere una fecha.',
   }),
 });
 
@@ -41,17 +33,13 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
     defaultValues: {
       description: expense?.description || '',
       amount: expense?.amount || 0,
-      date: expense ? new Date(expense.date) : new Date(),
     },
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!firestore || !user) return;
 
-    const expenseData = {
-      ...data,
-      date: data.date.toISOString(),
-    };
+    const expenseData = { ...data };
 
     if (expense?.id) {
       const expenseRef = doc(firestore, `users/${user.uid}/expenses`, expense.id);
@@ -93,51 +81,10 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Monto</FormLabel>
+              <FormLabel>Monto Mensual</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="ej., 9590" {...field} />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Fecha del Gasto</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Elige una fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
               <FormMessage />
             </FormItem>
           )}

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import type { Expense } from '@/app/lib/definitions';
-import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ExpenseForm } from './components/expense-form';
 import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
@@ -64,8 +63,8 @@ export default function ExpensesPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Gastos</CardTitle>
-            <CardDescription>Registra gastos varios e independientes.</CardDescription>
+            <CardTitle>Gastos Mensuales Fijos</CardTitle>
+            <CardDescription>Registra gastos recurrentes (suscripciones, servicios, etc.).</CardDescription>
           </div>
           <Button size="sm" className="gap-2" onClick={handleAdd}>
             <PlusCircle className="h-4 w-4" />
@@ -77,15 +76,14 @@ export default function ExpensesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Descripción</TableHead>
-                <TableHead className="hidden sm:table-cell">Fecha</TableHead>
-                <TableHead className="text-right">Monto</TableHead>
+                <TableHead className="text-right">Monto Mensual</TableHead>
                 <TableHead className="w-[100px] text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                  <TableRow>
-                  <TableCell colSpan={4} className="text-center">Cargando...</TableCell>
+                  <TableCell colSpan={3} className="text-center">Cargando...</TableCell>
                 </TableRow>
               )}
               {!isLoading && (expenses || []).map((expense) => {
@@ -93,11 +91,7 @@ export default function ExpensesPage() {
                   <TableRow key={expense.id}>
                     <TableCell>
                       <div className="font-medium">{expense.description}</div>
-                      <div className="text-sm text-muted-foreground sm:hidden">
-                        {format(new Date(expense.date), 'MMM d, yyyy')}
-                      </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

@@ -113,7 +113,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense.",
+      "description": "Represents a recurring monthly expense.",
       "properties": {
         "id": {
           "type": "string",
@@ -127,11 +127,6 @@
           "type": "number",
           "description": "The amount of the expense."
         },
-        "date": {
-          "type": "string",
-          "description": "The date of the expense.",
-          "format": "date-time"
-        },
         "description": {
           "type": "string",
           "description": "Description of the expense"
@@ -140,7 +135,7 @@
       "required": [
         "id",
         "amount",
-        "date"
+        "description"
       ]
     },
     "Income": {
