@@ -5,13 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import { DollarSign, CreditCard, Calendar, Zap, WalletCards } from "lucide-react";
+import { DollarSign, CreditCard, Calendar, Zap, Wallet, Pencil } from "lucide-react";
 import { format, getDaysInMonth } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { PurchaseInstallment, Expense, Card as CardType, MonthlyIncome, Person } from "@/app/lib/definitions";
 import { useFilter } from './components/filter-context';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { IncomeForm } from './components/income-form';
 
 
 export default function DashboardPage() {
@@ -19,6 +21,8 @@ export default function DashboardPage() {
   const { user } = useUser();
   const currentMonthStr = format(new Date(), 'yyyy-MM');
   const { people, filterPersonId } = useFilter();
+
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
@@ -34,7 +38,8 @@ export default function DashboardPage() {
   , [firestore, user, currentMonthStr]);
   const { data: incomeData, isLoading: incomeLoading } = useCollection<MonthlyIncome>(incomeQuery);
   
-  const monthlyIncome = incomeData?.[0]?.amount || 0;
+  const monthlyIncome = incomeData?.[0];
+  const monthlyIncomeAmount = monthlyIncome?.amount || 0;
 
   const totalOutstanding = useMemo(() => {
     const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
@@ -61,7 +66,7 @@ export default function DashboardPage() {
   const totalMonthlySpending = totalMonthlyFixedExpenses + currentMonthInstallments;
   
   const totalMonthlyCommitments = totalMonthlyFixedExpenses + currentMonthInstallments;
-  const remainingBudget = monthlyIncome - totalMonthlyCommitments;
+  const remainingBudget = monthlyIncomeAmount - totalMonthlyCommitments;
   
   const daysInMonth = getDaysInMonth(new Date());
   const remainingDays = daysInMonth - new Date().getDate() + 1;
@@ -98,108 +103,135 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total General Tarjetas</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
-            <p className="text-xs text-muted-foreground">Total restante en todas las cuotas.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gasto Mensual Comprometido</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
-             <p className="text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Cuotas: {formatCurrency(currentMonthInstallments)}</span>
-                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Gastos Fijos: {formatCurrency(totalMonthlyFixedExpenses)}</span>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+    <>
+      <div className="grid gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total General Tarjetas</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
+              <p className="text-xs text-muted-foreground">Total restante en todas las cuotas.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Gasto Mensual Comprometido</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
+              <p className="text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Cuotas: {formatCurrency(currentMonthInstallments)}</span>
+                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Gastos Fijos: {formatCurrency(totalMonthlyFixedExpenses)}</span>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-       <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Límite de Gasto Diario</CardTitle>
-             <CardDescription>Gasto diario recomendado con tu presupuesto restante.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold flex items-center gap-2">
-                <Zap className="h-6 w-6 text-muted-foreground" />
-                {formatCurrency(dailyBudget)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Límite de Gasto Semanal</CardTitle>
-            <CardDescription>Gasto semanal recomendado con tu presupuesto restante.</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <div className="text-2xl font-bold flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-muted-foreground" />
-                {formatCurrency(weeklyBudget)}
-             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-primary text-primary-foreground">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Restante este Mes</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary-foreground/70" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(remainingBudget)}</div>
-            <p className="text-xs text-primary-foreground/70">Después de todos los compromisos.</p>
-          </CardContent>
-        </Card>
-      </div>
-
-
-      <Card>
-        <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>Deuda por Tarjeta</CardTitle>
-                <CardDescription>Monto total pendiente por tarjeta de crédito ({filterPersonId ? people?.find(p=>p.id === filterPersonId)?.name : 'Todos'}).</CardDescription>
+        <div className="grid gap-6 md:grid-cols-4">
+          <Card>
+            <CardHeader>
+                <CardTitle className="text-sm font-medium">Ingreso Mensual</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+                <div className="text-2xl font-bold flex items-center gap-2">
+                    <Wallet className="h-6 w-6 text-muted-foreground" />
+                    {formatCurrency(monthlyIncomeAmount)}
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Límite de Gasto Diario</CardTitle>
+              <CardDescription>Gasto diario recomendado.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold flex items-center gap-2">
+                  <Zap className="h-6 w-6 text-muted-foreground" />
+                  {formatCurrency(dailyBudget)}
               </div>
-            </div>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={spendingByCard} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => formatCurrency(Number(value))}
-              />
-              <ChartTooltip
-                cursor={{fill: 'hsl(var(--muted))'}}
-                content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
-              />
-              <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                {spendingByCard.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">Límite de Gasto Semanal</CardTitle>
+              <CardDescription>Gasto semanal recomendado.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold flex items-center gap-2">
+                  <Calendar className="h-6 w-6 text-muted-foreground" />
+                  {formatCurrency(weeklyBudget)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-primary text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Restante este Mes</CardTitle>
+              <DollarSign className="h-4 w-4 text-primary-foreground/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(remainingBudget)}</div>
+              <p className="text-xs text-primary-foreground/70">Después de todos los compromisos.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+
+        <Card>
+          <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Deuda por Tarjeta</CardTitle>
+                  <CardDescription>Monto total pendiente por tarjeta de crédito ({filterPersonId ? people?.find(p=>p.id === filterPersonId)?.name : 'Todos'}).</CardDescription>
+                </div>
+              </div>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <BarChart accessibilityLayer data={spendingByCard} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => formatCurrency(Number(value))}
+                />
+                <ChartTooltip
+                  cursor={{fill: 'hsl(var(--muted))'}}
+                  content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
+                />
+                <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                  {spendingByCard.map((entry) => (
+                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Establecer Ingreso Mensual</SheetTitle>
+            <SheetDescription>
+              Define tu ingreso total para este mes. Esto se usará para calcular tus presupuestos.
+            </SheetDescription>
+          </SheetHeader>
+          <IncomeForm income={monthlyIncome} onSave={() => setSheetOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
