@@ -93,6 +93,10 @@
         "description": {
           "type": "string",
           "description": "Description of the installment purchase"
+        },
+        "lastPayment": {
+          "type": "string",
+          "description": "Manual entry for the last payment date text, e.g., 'finales de dic 2025'."
         }
       },
       "required": [

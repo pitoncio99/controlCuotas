@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
-import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useUser, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { PurchaseInstallment, Card as CardType, Person } from '@/app/lib/definitions';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   AlertDialog,
@@ -23,7 +23,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { toast } from '@/hooks/use-toast';
+
+type ProgressUpdateAction = {
+  purchase: PurchaseInstallment;
+  direction: 'up' | 'down';
+} | null;
+
 
 export default function PurchasesPage() {
   const firestore = useFirestore();
@@ -41,6 +48,7 @@ export default function PurchasesPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [deletingPurchase, setDeletingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
+  const [progressUpdate, setProgressUpdate] = useState<ProgressUpdateAction>(null);
 
   const handleEdit = (purchase: PurchaseInstallment) => {
     setEditingPurchase(purchase);
@@ -64,21 +72,37 @@ export default function PurchasesPage() {
     setDeletingPurchase(undefined);
   };
 
-  const getCardName = (cardId: string) => cards?.find(c => c.id === cardId)?.name || 'N/A';
+  const handleConfirmProgressUpdate = () => {
+    if (!firestore || !user || !progressUpdate) return;
+    
+    const { purchase, direction } = progressUpdate;
+    let newPaidInstallments = purchase.paidInstallments;
+
+    if (direction === 'up' && purchase.paidInstallments < purchase.totalInstallments) {
+      newPaidInstallments++;
+    } else if (direction === 'down' && purchase.paidInstallments > 0) {
+      newPaidInstallments--;
+    } else {
+      setProgressUpdate(null);
+      return; 
+    }
+
+    const purchaseRef = doc(firestore, `users/${user.uid}/purchaseInstallments`, purchase.id);
+    setDocumentNonBlocking(purchaseRef, { paidInstallments: newPaidInstallments }, { merge: true });
+
+    toast({
+      title: 'Progreso Actualizado',
+      description: `Se actualizó el progreso de "${purchase.description}".`
+    });
+
+    setProgressUpdate(null);
+  };
+
+  const getCard = (cardId: string) => cards?.find(c => c.id === cardId);
   const getPersonName = (personId: string) => people?.find(p => p.id === personId)?.name || 'N/A';
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
-  }
-
-  const calculateLastPaymentDate = (purchase: PurchaseInstallment) => {
-    const startDate = new Date(purchase.paymentDeadline);
-    const remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
-    if (remainingInstallments <= 0) return 'Pagado';
-    
-    // We add totalInstallments - 1 because the first payment is considered month 0
-    const lastPaymentDate = addMonths(startDate, purchase.totalInstallments - 1);
-    return `finales de ${format(lastPaymentDate, 'MMMM yyyy', { locale: es })}`;
   }
   
   const isLoading = purchasesLoading || cardsLoading || peopleLoading;
@@ -103,7 +127,7 @@ export default function PurchasesPage() {
                 <TableHead>Descripción</TableHead>
                 <TableHead className="hidden sm:table-cell">Persona</TableHead>
                 <TableHead className="hidden md:table-cell">Tarjeta</TableHead>
-                <TableHead className="hidden lg:table-cell text-right">Monto Cuota</TableHead>
+                <TableHead className="hidden lg:table-cell">Fecha Compra</TableHead>
                 <TableHead className="text-center">Progreso</TableHead>
                 <TableHead className="hidden md:table-cell">Último Pago</TableHead>
                 <TableHead className="text-right">Total Restante</TableHead>
@@ -118,21 +142,34 @@ export default function PurchasesPage() {
               )}
               {!isLoading && (purchases || []).map((purchase) => {
                 const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
+                const card = getCard(purchase.cardId);
                 return (
                   <TableRow key={purchase.id}>
                     <TableCell>
                       <div className="font-medium">{purchase.description}</div>
                       <div className="text-sm text-muted-foreground md:hidden">
-                        {getPersonName(purchase.personId)} - {getCardName(purchase.cardId)}
+                        {getPersonName(purchase.personId)} - {card?.name}
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{getPersonName(purchase.personId)}</TableCell>
-                    <TableCell className="hidden md:table-cell">{getCardName(purchase.cardId)}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-right">{formatCurrency(purchase.installmentAmount)}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="font-mono">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="p-1 rounded-md" style={{ backgroundColor: card?.color ? `${card.color}40` : 'transparent' }}>
+                        {card?.name || 'N/A'}
+                      </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{calculateLastPaymentDate(purchase)}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{format(new Date(purchase.paymentDeadline), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'down' })} disabled={purchase.paidInstallments <= 0}>
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                        <Badge variant="outline" className="font-mono text-sm">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'up' })} disabled={purchase.paidInstallments >= purchase.totalInstallments}>
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{purchase.lastPayment || 'N/A'}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
@@ -176,6 +213,20 @@ export default function PurchasesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!progressUpdate} onOpenChange={(open) => !open && setProgressUpdate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Actualización</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas {progressUpdate?.direction === 'up' ? 'aumentar' : 'disminuir'} las cuotas pagadas de "{progressUpdate?.purchase.description}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProgressUpdate(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmProgressUpdate}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

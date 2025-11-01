@@ -20,6 +20,7 @@ export type PurchaseInstallment = {
   paidInstallments: number;
   totalInstallments: number;
   paymentDeadline: string; // ISO date string
+  lastPayment?: string;
 };
 
 export type Expense = {

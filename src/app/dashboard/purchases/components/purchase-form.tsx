@@ -27,6 +27,7 @@ const FormSchema = z.object({
   paidInstallments: z.coerce.number().int().min(0, { message: 'Debe ser un número no negativo.' }),
   totalInstallments: z.coerce.number().int().positive({ message: 'Debe ser un número positivo.' }),
   paymentDeadline: z.date({ required_error: 'Se requiere una fecha de compra.' }),
+  lastPayment: z.string().optional(),
 }).refine(data => data.paidInstallments <= data.totalInstallments, {
   message: "Las cuotas pagadas no pueden ser mayores que las cuotas totales.",
   path: ["paidInstallments"],
@@ -58,6 +59,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
       paidInstallments: purchase?.paidInstallments || 0,
       totalInstallments: purchase?.totalInstallments || 1,
       paymentDeadline: purchase ? new Date(purchase.paymentDeadline) : new Date(),
+      lastPayment: purchase?.lastPayment || '',
     },
   });
 
@@ -187,47 +189,62 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
               )}
             />
         </div>
-        <FormField
-          control={form.control}
-          name="paymentDeadline"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Fecha de Compra</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="paymentDeadline"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Fecha de Compra</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Elige una fecha</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+              control={form.control}
+              name="lastPayment"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Último Pago (Manual)</FormLabel>
                   <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Elige una fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    <Input placeholder="ej., finales de dic 2025" {...field} />
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        </div>
         
         <Button type="submit">Guardar Compra</Button>
       </form>
