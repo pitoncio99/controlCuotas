@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
@@ -121,7 +121,13 @@ export default function PurchasesPage() {
   }, [purchases, filterPersonId, filterCardId]);
 
   const totalFilteredInstallmentAmount = useMemo(() => {
-    return filteredPurchases.reduce((acc, purchase) => acc + purchase.installmentAmount, 0);
+    return filteredPurchases.reduce((acc, purchase) => {
+      const remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
+      if (remainingInstallments > 0) {
+        return acc + purchase.installmentAmount;
+      }
+      return acc;
+    }, 0);
   }, [filteredPurchases]);
 
   return (
@@ -168,19 +174,22 @@ export default function PurchasesPage() {
                   <TableHead className="text-right">Monto Cuota</TableHead>
                   <TableHead className="text-right">Restante</TableHead>
                   <TableHead className="text-center">Progreso</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Fecha Compra</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Último Pago</TableHead>
                   <TableHead className="w-[100px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">Cargando...</TableCell>
+                    <TableCell colSpan={9} className="text-center">Cargando...</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && filteredPurchases.map((purchase) => {
                   const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
                   const card = getCard(purchase.cardId);
                   const progressPercentage = purchase.totalInstallments > 0 ? (purchase.paidInstallments / purchase.totalInstallments) * 100 : 0;
+                  
                   return (
                     <TableRow key={purchase.id}>
                       <TableCell className="hidden md:table-cell">
@@ -198,23 +207,30 @@ export default function PurchasesPage() {
                       <TableCell className="text-right">{formatCurrency(purchase.installmentAmount)}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(remainingAmount)}</TableCell>
                       <TableCell className="text-center">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-center gap-1 cursor-default">
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'down' })} disabled={purchase.paidInstallments <= 0}>
-                                <ChevronDown className="h-4 w-4" />
-                              </Button>
+                        <div className="flex items-center justify-center gap-1 cursor-default">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'down' })} disabled={purchase.paidInstallments <= 0}>
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <Badge variant="outline" className="font-mono text-sm">{purchase.paidInstallments}/{purchase.totalInstallments}</Badge>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'up' })} disabled={purchase.paidInstallments >= purchase.totalInstallments}>
-                                <ChevronUp className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{progressPercentage.toFixed(0)}% pagado</p>
-                          </TooltipContent>
-                        </Tooltip>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{progressPercentage.toFixed(0)}% pagado</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setProgressUpdate({ purchase, direction: 'up' })} disabled={purchase.paidInstallments >= purchase.totalInstallments}>
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
+                       <TableCell className="text-center hidden sm:table-cell">
+                        <div className="flex items-center justify-center gap-1">
+                          <CalendarDays className="h-4 w-4 text-muted-foreground"/>
+                          {format(new Date(purchase.paymentDeadline), 'dd/MM/yyyy')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center hidden sm:table-cell">{purchase.lastPayment || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                          <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -236,7 +252,7 @@ export default function PurchasesPage() {
                 <TableRow>
                   <TableCell colSpan={3} className="text-right font-bold">Total Mensual Filtrado</TableCell>
                   <TableCell className="text-right font-bold">{formatCurrency(totalFilteredInstallmentAmount)}</TableCell>
-                  <TableCell colSpan={3}></TableCell>
+                  <TableCell colSpan={5}></TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
