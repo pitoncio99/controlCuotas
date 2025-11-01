@@ -18,6 +18,11 @@
           "type": "string",
           "description": "The email address of the person.",
           "format": "email"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "URL of the person's avatar image.",
+          "format": "uri"
         }
       },
       "required": [
