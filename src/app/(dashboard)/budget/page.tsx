@@ -27,6 +27,11 @@ export default function BudgetPage() {
   const daysInMonth = getDaysInMonth(new Date());
   const dailyBudget = remainingBudget > 0 ? remainingBudget / daysInMonth : 0;
   const weeklyBudget = dailyBudget * 7;
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
+  }
+
 
   return (
     <div className="grid gap-6">
@@ -51,7 +56,7 @@ export default function BudgetPage() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${dailyBudget.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(dailyBudget)}</div>
             <p className="text-xs text-muted-foreground">Gasto diario recomendado.</p>
           </CardContent>
         </Card>
@@ -61,7 +66,7 @@ export default function BudgetPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${weeklyBudget.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(weeklyBudget)}</div>
             <p className="text-xs text-muted-foreground">Gasto semanal recomendado.</p>
           </CardContent>
         </Card>
@@ -71,7 +76,7 @@ export default function BudgetPage() {
             <DollarSign className="h-4 w-4 text-primary-foreground/70" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${remainingBudget.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(remainingBudget)}</div>
             <p className="text-xs text-primary-foreground/70">Después de todos los compromisos conocidos.</p>
           </CardContent>
         </Card>

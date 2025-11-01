@@ -36,6 +36,10 @@ export default function PurchasesPage() {
     setEditingPurchase(undefined);
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
+  }
+
   return (
     <>
       <Card>
@@ -81,8 +85,8 @@ export default function PurchasesPage() {
                         <Badge style={{ backgroundColor: card.color, color: card.color === '#333333' ? '#fff': '#000' }} variant="outline">{card.name}</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">${purchase.amountPerInstallment.toFixed(2)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-right">${totalValue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(purchase.amountPerInstallment)}</TableCell>
+                    <TableCell className="hidden md:table-cell text-right">{formatCurrency(totalValue)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <Progress value={progress} aria-label={`${Math.round(progress)}% pagado`} />

@@ -40,6 +40,10 @@ export default function DashboardPage() {
       label: "Deuda Total",
     },
   } satisfies ChartConfig;
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
+  }
 
   return (
     <div className="grid gap-6">
@@ -50,7 +54,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
             <p className="text-xs text-muted-foreground">Total restante en todas las cuotas.</p>
           </CardContent>
         </Card>
@@ -60,7 +64,7 @@ export default function DashboardPage() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalMonthlySpending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
             <p className="text-xs text-muted-foreground">Incluye cuotas y gastos generales.</p>
           </CardContent>
         </Card>
@@ -95,11 +99,11 @@ export default function DashboardPage() {
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
+                  tickFormatter={(value) => formatCurrency(Number(value))}
                 />
                 <ChartTooltip
                   cursor={{fill: 'hsl(var(--muted))'}}
-                  content={<ChartTooltipContent indicator="dot" />}
+                  content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
                 />
                 <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                   {spendingByCard.map((entry) => (

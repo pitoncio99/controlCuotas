@@ -30,6 +30,10 @@ export default function ExpensesPage() {
     setSheetOpen(false);
     setEditingExpense(undefined);
   };
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
+  }
 
   return (
     <>
@@ -65,7 +69,7 @@ export default function ExpensesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{format(new Date(expense.date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(expense.amount)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
