@@ -38,15 +38,15 @@ export function PersonForm({ person, onSave }: PersonFormProps) {
     if (!firestore || !user) return;
 
     if (person?.id) {
-      const personRef = doc(firestore, `users/${user.uid}/persons`, person.id);
+      const personRef = doc(firestore, `users/${user.uid}/people`, person.id);
       setDocumentNonBlocking(personRef, data, { merge: true });
       toast({
         title: 'Persona Actualizada',
         description: `La persona "${data.name}" ha sido actualizada.`,
       });
     } else {
-      const newPersonId = doc(collection(firestore, `users/${user.uid}/persons`)).id;
-      const personRef = doc(firestore, `users/${user.uid}/persons`, newPersonId);
+      const newPersonId = doc(collection(firestore, `users/${user.uid}/people`)).id;
+      const personRef = doc(firestore, `users/${user.uid}/people`, newPersonId);
       setDocumentNonBlocking(personRef, { id: newPersonId, ...data }, { merge: true });
       toast({
         title: 'Persona Agregada',
@@ -90,3 +90,5 @@ export function PersonForm({ person, onSave }: PersonFormProps) {
     </Form>
   );
 }
+
+    

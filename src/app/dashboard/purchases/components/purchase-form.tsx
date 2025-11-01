@@ -258,3 +258,5 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
     </Form>
   );
 }
+
+    

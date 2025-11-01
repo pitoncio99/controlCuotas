@@ -45,7 +45,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
   const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
   const { data: cards } = useCollection<Card>(cardsCollection);
   
-  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
   const { data: people } = useCollection<Person>(peopleCollection);
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -234,3 +234,5 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
     </Form>
   );
 }
+
+    
