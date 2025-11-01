@@ -1,27 +1,110 @@
-
+/**
+ * @fileoverview Firestore Security Rules for CuotaControl App
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model, where each user has complete control over their data.
+ *
+ * Data Structure:
+ * All data is nested under /users/{userId}, providing clear ownership and separation.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed to protect user privacy.
+ * - Data consistency between paths and document content is enforced to prevent unauthorized access.
+ *
+ * Authentication Notes:
+ * - The error `FirebaseError: Firebase: Error (auth/operation-not-allowed)` suggests an issue with Firebase Authentication.
+ * - The authentication provider is enabled for both `password` and `anonymous` .
+ * - Verify that email/password sign-in is enabled in the Firebase Console for the project.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is authenticated.
-    function isAuthenticated() {
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to check if the user is the owner of the document.
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Rules for user-specific data.
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
-    
-    // Rules for the global 'cards' collection.
-    match /cards/{cardId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated(); // Allow authenticated users to create/update cards for now
+
+    /**
+     * @description Enforces document ownership for Person entities under a user's data tree.
+     * @path /users/{userId}/people/{personId}
+     * @allow (create) User 'user123' can create a new Person document with personId matching the path.
+     * @deny (create) User 'user456' cannot create a Person document under /users/user123/people/person456.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/people/{personId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == personId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces document ownership for Card entities under a user's data tree.
+     * @path /users/{userId}/cards/{cardId}
+     * @allow (create) User 'user123' can create a new Card document with cardId matching the path.
+     * @deny (create) User 'user456' cannot create a Card document under /users/user123/cards/card456.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/cards/{cardId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == cardId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces document ownership for PurchaseInstallment entities under a user's data tree.
+     * @path /users/{userId}/purchaseInstallments/{purchaseInstallmentId}
+     * @allow (create) User 'user123' can create a new PurchaseInstallment document with purchaseInstallmentId matching the path.
+     * @deny (create) User 'user456' cannot create a PurchaseInstallment document under /users/user123/purchaseInstallments/purchaseInstallment456.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/purchaseInstallments/{purchaseInstallmentId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == purchaseInstallmentId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces document ownership for Expense entities under a user's data tree.
+     * @path /users/{userId}/expenses/{expenseId}
+     * @allow (create) User 'user123' can create a new Expense document with expenseId matching the path.
+     * @deny (create) User 'user456' cannot create a Expense document under /users/user123/expenses/expense456.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == expenseId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces document ownership for Income entities under a user's data tree.
+     * @path /users/{userId}/incomes/{incomeId}
+     * @allow (create) User 'user123' can create a new Income document with incomeId matching the path.
+     * @deny (create) User 'user456' cannot create a Income document under /users/user123/incomes/income456.
+     * @principle Enforces document ownership for writes. Validates relational integrity between documents.
+     */
+    match /users/{userId}/incomes/{incomeId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == incomeId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
   }
 }

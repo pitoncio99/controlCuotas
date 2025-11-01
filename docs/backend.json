@@ -18,11 +18,6 @@
           "type": "string",
           "description": "The email address of the person.",
           "format": "email"
-        },
-        "avatar": {
-          "type": "string",
-          "description": "URL of the person's avatar image.",
-          "format": "uri"
         }
       },
       "required": [
@@ -46,7 +41,7 @@
         },
         "color": {
           "type": "string",
-          "description": "The color associated with the card (e.g., #FFFFFF)."
+          "description": "The color associated with the card (e.g., #3366BB)."
         }
       },
       "required": [
@@ -92,7 +87,7 @@
         },
         "description": {
           "type": "string",
-          "description": "A description of the purchase."
+          "description": "Description of the installment purchase"
         }
       },
       "required": [
@@ -130,7 +125,7 @@
         },
         "description": {
           "type": "string",
-          "description": "A description of the expense."
+          "description": "Description of the expense"
         }
       },
       "required": [
@@ -144,7 +139,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Income",
       "type": "object",
-      "description": "Represents a monthly income.",
+      "description": "Represents a monthly income entry for budget planning.",
       "properties": {
         "id": {
           "type": "string",
@@ -152,7 +147,7 @@
         },
         "amount": {
           "type": "number",
-          "description": "The monthly income amount."
+          "description": "The amount of monthly income."
         },
         "date": {
           "type": "string",
@@ -161,7 +156,7 @@
         },
         "description": {
           "type": "string",
-          "description": "A description of the income source."
+          "description": "Description of the income"
         }
       },
       "required": [
@@ -173,19 +168,20 @@
   },
   "auth": {
     "providers": [
-      "google.com"
+      "password",
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/persons/{personId}",
+        "path": "/users/{userId}/people/{personId}",
         "definition": {
           "entityName": "Person",
           "schema": {
             "$ref": "#/backend/entities/Person"
           },
-          "description": "Stores information about a person. Owned by the user.",
+          "description": "Stores person data for a specific user. User ID is used for path-based ownership, ensuring only the user can access their person data.",
           "params": [
             {
               "name": "userId",
@@ -199,14 +195,18 @@
         }
       },
       {
-        "path": "/cards/{cardId}",
+        "path": "/users/{userId}/cards/{cardId}",
         "definition": {
           "entityName": "Card",
           "schema": {
             "$ref": "#/backend/entities/Card"
           },
-          "description": "Stores information about credit cards. Available globally.",
+          "description": "Stores card data for a specific user. User ID is used for path-based ownership, ensuring only the user can access their card data.",
           "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
             {
               "name": "cardId",
               "description": "The ID of the card."
@@ -221,7 +221,7 @@
           "schema": {
             "$ref": "#/backend/entities/PurchaseInstallment"
           },
-          "description": "Stores purchase installment information for a specific user. Owned by the user.",
+          "description": "Stores purchase installment data for a specific user. User ID is used for path-based ownership, ensuring only the user can access their purchase installment data.",
           "params": [
             {
               "name": "userId",
@@ -241,7 +241,7 @@
           "schema": {
             "$ref": "#/backend/entities/Expense"
           },
-          "description": "Stores expense information for a specific user. Owned by the user.",
+          "description": "Stores expense data for a specific user. User ID is used for path-based ownership, ensuring only the user can access their expense data.",
           "params": [
             {
               "name": "userId",
@@ -261,7 +261,7 @@
           "schema": {
             "$ref": "#/backend/entities/Income"
           },
-          "description": "Stores income information for a specific user. Owned by the user.",
+          "description": "Stores income data for a specific user. User ID is used for path-based ownership, ensuring only the user can access their income data.",
           "params": [
             {
               "name": "userId",
@@ -275,6 +275,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to manage financial information, including persons, cards, purchase installments, expenses, and income. The structure prioritizes authorization independence and supports secure list operations by leveraging path-based ownership for user-specific data and dedicated collections for shared resources. User data such as Persons, Income and PurchaseInstallments will be stored under the `/users/{userId}` path.  Cards are global. This approach allows us to secure `list` operations by scoping them to the authenticated user's data. Authorization Independence is achieved, because only path-based ownership is used, without denormalization or membership maps.\n\nSegregation of concerns is applied by storing `cards` outside the `users` collection since it is shared among all users.\n\nThis design is simple and scalable and debuggable as it relies on path based rules."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, adhering to the principles of DBAC (Database-Based Access Control) and QAPs (Rules are not Filters).  The structure leverages path-based ownership for user-specific data and a membership map approach for collaborative data. The structure supports the core features of the CuotaControl app, enabling efficient data retrieval and management for its various functionalities, including Person and Card Management, Purchase Grouping, Expense Tracking, and Budget Planning. The design allows for straightforward security rules, enhancing the overall security and maintainability of the application. The error reported, `FirebaseError: Firebase: Error (auth/operation-not-allowed)`, suggests an issue with Firebase Authentication configuration or rules. Given only 'password' and 'anonymous' are enabled, ensure email/password sign-in is enabled in the Firebase Console. If the error persists after verifying Authentication settings, further investigation of security rules or client-side code will be needed. Ensure no operations are performed client-side that requires elevated privileges without proper authorization."
   }
 }

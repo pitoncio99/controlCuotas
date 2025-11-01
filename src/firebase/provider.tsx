@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -131,7 +131,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     firestore: context.firestore,
     auth: context.auth,
     user: context.user,
-isUserLoading: context.isUserLoading,
+    isUserLoading: context.isUserLoading,
     userError: context.userError,
   };
 };
