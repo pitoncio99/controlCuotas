@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown, CalendarDays, ClipboardCopy } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown, CalendarDays, ClipboardCopy, ArrowUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PurchaseForm } from './components/purchase-form';
@@ -25,7 +25,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 import { useFilter } from '../components/filter-context';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,13 @@ type ProgressUpdateAction = {
   direction: 'up' | 'down';
 } | null;
 
+type SortKey = 'cardName' | 'description' | 'personName' | 'installmentAmount' | 'remainingAmount' | 'progress' | 'paymentDeadline' | 'lastPayment';
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  key: SortKey;
+  direction: SortDirection;
+}
 
 export default function PurchasesPage() {
   const firestore = useFirestore();
@@ -54,8 +61,78 @@ export default function PurchasesPage() {
   const [editingPurchase, setEditingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [deletingPurchase, setDeletingPurchase] = useState<PurchaseInstallment | undefined>(undefined);
   const [progressUpdate, setProgressUpdate] = useState<ProgressUpdateAction>(null);
-
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'paymentDeadline', direction: 'desc' });
   const [filterCardId, setFilterCardId] = useState<string>('');
+
+  const getCard = (cardId: string) => cards?.find(c => c.id === cardId);
+  const getPersonName = (personId: string) => people?.find(p => p.id === personId)?.name || 'N/A';
+
+  const sortedAndFilteredPurchases = useMemo(() => {
+    let filtered = (purchases || []).filter(purchase => {
+      const personMatch = filterPersonId ? purchase.personId === filterPersonId : true;
+      const cardMatch = filterCardId ? purchase.cardId === filterCardId : true;
+      return personMatch && cardMatch;
+    });
+
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        const aVal = getValueForSort(a, sortConfig.key);
+        const bVal = getValueForSort(b, sortConfig.key);
+
+        if (aVal < bVal) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [purchases, filterPersonId, filterCardId, sortConfig, cards, people]);
+
+  function getValueForSort(purchase: PurchaseInstallment, key: SortKey) {
+    switch (key) {
+      case 'cardName':
+        return getCard(purchase.cardId)?.name || '';
+      case 'personName':
+        return getPersonName(purchase.personId);
+      case 'remainingAmount':
+        return (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
+      case 'progress':
+        return purchase.totalInstallments > 0 ? purchase.paidInstallments / purchase.totalInstallments : 0;
+      case 'paymentDeadline':
+        return new Date(purchase.paymentDeadline).getTime();
+      default:
+        return purchase[key as keyof PurchaseInstallment] || '';
+    }
+  }
+
+  const handleSort = (key: SortKey) => {
+    let direction: SortDirection = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+
+  const renderSortIcon = (key: SortKey) => {
+    if (sortConfig?.key !== key) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    return sortConfig.direction === 'asc' ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />;
+  };
+
+  const SortableHeader = ({ sortKey, children, className }: { sortKey: SortKey, children: React.ReactNode, className?: string }) => (
+    <TableHead className={className}>
+      <Button variant="ghost" onClick={() => handleSort(sortKey)} className="px-2 py-1 h-auto">
+        {children}
+        {renderSortIcon(sortKey)}
+      </Button>
+    </TableHead>
+  );
 
   const handleEdit = (purchase: PurchaseInstallment) => {
     setEditingPurchase(purchase);
@@ -105,35 +182,24 @@ export default function PurchasesPage() {
     setProgressUpdate(null);
   };
 
-  const getCard = (cardId: string) => cards?.find(c => c.id === cardId);
-  const getPersonName = (personId: string) => people?.find(p => p.id === personId)?.name || 'N/A';
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
   }
   
   const isLoading = purchasesLoading || cardsLoading || peopleLoading;
 
-  const filteredPurchases = useMemo(() => {
-    return (purchases || []).filter(purchase => {
-      const personMatch = filterPersonId ? purchase.personId === filterPersonId : true;
-      const cardMatch = filterCardId ? purchase.cardId === filterCardId : true;
-      return personMatch && cardMatch;
-    });
-  }, [purchases, filterPersonId, filterCardId]);
-
   const totalFilteredInstallmentAmount = useMemo(() => {
-    return filteredPurchases.reduce((acc, purchase) => {
+    return sortedAndFilteredPurchases.reduce((acc, purchase) => {
       const remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
       if (remainingInstallments > 0) {
         return acc + purchase.installmentAmount;
       }
       return acc;
     }, 0);
-  }, [filteredPurchases]);
+  }, [sortedAndFilteredPurchases]);
 
   const handleExport = () => {
-    if (filteredPurchases.length === 0) {
+    if (sortedAndFilteredPurchases.length === 0) {
       toast({
         variant: "destructive",
         title: "No hay datos para exportar",
@@ -142,8 +208,7 @@ export default function PurchasesPage() {
       return;
     }
 
-    // Group purchases by cardId
-    const groupedByCard = filteredPurchases.reduce((acc, p) => {
+    const groupedByCard = sortedAndFilteredPurchases.reduce((acc, p) => {
       if (!acc[p.cardId]) {
         acc[p.cardId] = [];
       }
@@ -162,8 +227,8 @@ export default function PurchasesPage() {
     }).join("\n\n");
 
 
-    const totalAmount = filteredPurchases.reduce((sum, p) => sum + p.installmentAmount, 0);
-    const totalText = `\n\n--------------------\n${filteredPurchases.length} compras por ${formatCurrency(totalAmount)}`;
+    const totalAmount = sortedAndFilteredPurchases.reduce((sum, p) => sum + p.installmentAmount, 0);
+    const totalText = `\n\n--------------------\n${sortedAndFilteredPurchases.length} compras por ${formatCurrency(totalAmount)}`;
     
     const exportText = rows + totalText;
 
@@ -217,14 +282,14 @@ export default function PurchasesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="hidden md:table-cell">Tarjeta</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="hidden sm:table-cell">Persona</TableHead>
-                  <TableHead className="text-right">Monto Cuota</TableHead>
-                  <TableHead className="text-right">Restante</TableHead>
-                  <TableHead className="text-center">Progreso</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">Fecha Compra</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">Último Pago</TableHead>
+                  <SortableHeader sortKey="cardName" className="hidden md:table-cell">Tarjeta</SortableHeader>
+                  <SortableHeader sortKey="description">Descripción</SortableHeader>
+                  <SortableHeader sortKey="personName" className="hidden sm:table-cell">Persona</SortableHeader>
+                  <SortableHeader sortKey="installmentAmount" className="text-right">Monto Cuota</SortableHeader>
+                  <SortableHeader sortKey="remainingAmount" className="text-right">Restante</SortableHeader>
+                  <SortableHeader sortKey="progress" className="text-center">Progreso</SortableHeader>
+                  <SortableHeader sortKey="paymentDeadline" className="text-center hidden sm:table-cell">Fecha Compra</SortableHeader>
+                  <SortableHeader sortKey="lastPayment" className="text-center hidden sm:table-cell">Último Pago</SortableHeader>
                   <TableHead className="w-[100px] text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -234,7 +299,7 @@ export default function PurchasesPage() {
                     <TableCell colSpan={9} className="text-center">Cargando...</TableCell>
                   </TableRow>
                 )}
-                {!isLoading && filteredPurchases.map((purchase) => {
+                {!isLoading && sortedAndFilteredPurchases.map((purchase) => {
                   const remainingAmount = (purchase.totalInstallments - purchase.paidInstallments) * purchase.installmentAmount;
                   const card = getCard(purchase.cardId);
                   const isCompleted = purchase.paidInstallments >= purchase.totalInstallments && purchase.totalInstallments > 0;
@@ -351,5 +416,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
-    
