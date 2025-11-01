@@ -10,14 +10,13 @@ import { format, getDaysInMonth } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { PurchaseInstallment, Expense, Card as CardType, MonthlyIncome, Person } from "@/app/lib/definitions";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFilter } from './components/filter-context';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const currentMonthStr = format(new Date(), 'yyyy-MM');
-
-  const [filterPersonId, setFilterPersonId] = useState<string>('');
+  const { people, filterPersonId } = useFilter();
 
   const purchasesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/purchaseInstallments`) : null, [firestore, user]);
   const { data: purchases, isLoading: purchasesLoading } = useCollection<PurchaseInstallment>(purchasesCollection);
@@ -27,9 +26,6 @@ export default function DashboardPage() {
 
   const cardsCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/cards`) : null, [firestore, user]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
-
-  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
-  const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const incomeQuery = useMemoFirebase(() => 
     firestore && user ? query(collection(firestore, `users/${user.uid}/incomes`), where('month', '==', currentMonthStr)) : null
@@ -93,7 +89,7 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
   }
   
-  const isLoading = purchasesLoading || expensesLoading || cardsLoading || incomeLoading || peopleLoading;
+  const isLoading = purchasesLoading || expensesLoading || cardsLoading || incomeLoading;
 
   if (isLoading) {
     return <div>Cargando...</div>;
@@ -103,21 +99,8 @@ export default function DashboardPage() {
     <div className="grid gap-6">
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
-           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-            <div className="w-full">
-               <div className="flex items-center gap-2 mb-2">
-                <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
-                 <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
-                  <SelectTrigger className="w-auto h-7 text-xs border-dashed">
-                    <SelectValue placeholder="Filtrar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las personas</SelectItem>
-                    {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-               </div>
-            </div>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
