@@ -15,9 +15,9 @@ import {
   CreditCard,
   Users,
   Receipt,
-  PiggyBank,
   ShoppingCart,
   Wallet,
+  AreaChart,
 } from 'lucide-react';
 
 const menuItems = [
@@ -26,7 +26,7 @@ const menuItems = [
   { href: '/dashboard/cards', label: 'Tarjetas', icon: CreditCard },
   { href: '/dashboard/people', label: 'Personas', icon: Users },
   { href: '/dashboard/expenses', label: 'Gastos', icon: ShoppingCart },
-  { href: '/dashboard/budget', label: 'Presupuesto', icon: PiggyBank },
+  { href: '/dashboard/system', label: 'Sistema', icon: AreaChart },
 ];
 
 export function AppNav() {
