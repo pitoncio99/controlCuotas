@@ -11,6 +11,8 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, where } from "firebase/firestore";
 import type { PurchaseInstallment, Expense, Card as CardType, MonthlyIncome, Person } from "@/app/lib/definitions";
 import { useFilter } from './components/filter-context';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -115,7 +117,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
-            <p className="text-xs text-muted-foreground">Suma de cuotas y gastos fijos.</p>
+             <p className="text-xs text-muted-foreground">
+              {formatCurrency(currentMonthInstallments)} (Cuotas) + {formatCurrency(totalMonthlyFixedExpenses)} (Gastos Fijos)
+            </p>
           </CardContent>
         </Card>
         <Card>
