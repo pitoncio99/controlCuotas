@@ -141,15 +141,16 @@ export default function PurchasesPage() {
       return;
     }
 
-    const header = "Descripción\tMonto Cuota\tProgreso\tTarjeta\n";
     const rows = filteredPurchases.map(p => {
       const cardName = getCard(p.cardId)?.name || 'N/A';
       const progress = `${p.paidInstallments}/${p.totalInstallments}`;
       const amount = formatCurrency(p.installmentAmount);
-      return `${p.description}\t${amount}\t${progress}\t${cardName}`;
-    }).join("\n");
+      return `${cardName}\n${amount} --> ${p.description} --> ${progress}`;
+    }).join("\n\n");
 
-    const exportText = header + rows;
+    const totalText = `\n\n--------------------\n${filteredPurchases.length} compras (suma de todas las compras)`;
+    
+    const exportText = rows + totalText;
 
     navigator.clipboard.writeText(exportText).then(() => {
       toast({
@@ -333,4 +334,3 @@ export default function PurchasesPage() {
       </AlertDialog>
     </>
   );
-}
