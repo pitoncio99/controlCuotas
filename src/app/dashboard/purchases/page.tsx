@@ -148,7 +148,8 @@ export default function PurchasesPage() {
       return `${cardName}\n${amount} --> ${p.description} --> ${progress}`;
     }).join("\n\n");
 
-    const totalText = `\n\n--------------------\n${filteredPurchases.length} compras (suma de todas las compras)`;
+    const totalAmount = filteredPurchases.reduce((sum, p) => sum + p.installmentAmount, 0);
+    const totalText = `\n\n--------------------\n${filteredPurchases.length} compras por ${formatCurrency(totalAmount)}`;
     
     const exportText = rows + totalText;
 
