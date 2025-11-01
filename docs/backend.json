@@ -1,136 +1,276 @@
 {
   "entities": {
     "Person": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Person",
-      "description": "A person who can be associated with a purchase.",
       "type": "object",
+      "description": "Represents a person to whom purchases can be assigned.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Person entity."
+        },
         "name": {
           "type": "string",
           "description": "The name of the person."
         },
-        "avatar": {
+        "email": {
           "type": "string",
-          "description": "URL of the person's avatar image.",
-          "format": "uri"
+          "description": "The email address of the person.",
+          "format": "email"
         }
       },
-      "required": ["name"]
+      "required": [
+        "id",
+        "name"
+      ]
     },
     "Card": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Card",
-      "description": "A credit card used for purchases.",
       "type": "object",
+      "description": "Represents a credit card.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Card entity."
+        },
         "name": {
           "type": "string",
-          "description": "The name of the card."
+          "description": "The name of the card (e.g., Visa, Mastercard)."
         },
         "color": {
           "type": "string",
-          "description": "A hex color code to represent the card."
+          "description": "The color associated with the card (e.g., #FFFFFF)."
         }
       },
-      "required": ["name", "color"]
+      "required": [
+        "id",
+        "name",
+        "color"
+      ]
     },
-    "Purchase": {
-      "title": "Purchase",
-      "description": "A purchase made with installments.",
+    "PurchaseInstallment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PurchaseInstallment",
       "type": "object",
+      "description": "Represents an installment of a purchase.",
       "properties": {
-        "description": {
-          "type": "string"
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PurchaseInstallment entity."
         },
         "cardId": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference to Card. (Relationship: Card 1:N PurchaseInstallment)"
         },
         "personId": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference to Person. (Relationship: Person 1:N PurchaseInstallment)"
         },
-        "amountPerInstallment": {
-          "type": "number"
+        "installmentAmount": {
+          "type": "number",
+          "description": "The amount of each installment."
         },
-        "installmentsPaid": {
-          "type": "number"
+        "paidInstallments": {
+          "type": "number",
+          "description": "The number of installments that have been paid."
         },
         "totalInstallments": {
-          "type": "number"
+          "type": "number",
+          "description": "The total number of installments."
         },
-        "purchaseDate": {
+        "paymentDeadline": {
           "type": "string",
+          "description": "The deadline for the payment of the installment.",
           "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the purchase."
         }
       },
-      "required": ["description", "cardId", "personId", "amountPerInstallment", "installmentsPaid", "totalInstallments", "purchaseDate"]
+      "required": [
+        "id",
+        "cardId",
+        "personId",
+        "installmentAmount",
+        "paidInstallments",
+        "totalInstallments",
+        "paymentDeadline"
+      ]
     },
     "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
-      "description": "A general, independent expense.",
       "type": "object",
+      "description": "Represents an expense.",
       "properties": {
-        "description": {
-          "type": "string"
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
+        },
+        "cardId": {
+          "type": "string",
+          "description": "Reference to Card. (Relationship: Card 1:N Expense)"
         },
         "amount": {
-          "type": "number"
+          "type": "number",
+          "description": "The amount of the expense."
         },
         "date": {
           "type": "string",
+          "description": "The date of the expense.",
           "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the expense."
         }
       },
-      "required": ["description", "amount", "date"]
+      "required": [
+        "id",
+        "cardId",
+        "amount",
+        "date"
+      ]
     },
-    "MonthlyIncome": {
-        "title": "Monthly Income",
-        "description": "Tracks the total income for a specific month.",
-        "type": "object",
-        "properties": {
-            "month": {
-                "type": "string",
-                "description": "The month in YYYY-MM format."
-            },
-            "amount": {
-                "type": "number",
-                "description": "The income amount for the month."
-            }
+    "Income": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Income",
+      "type": "object",
+      "description": "Represents a monthly income.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Income entity."
         },
-        "required": ["month", "amount"]
+        "amount": {
+          "type": "number",
+          "description": "The monthly income amount."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the income was received.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the income source."
+        }
+      },
+      "required": [
+        "id",
+        "amount",
+        "date"
+      ]
     }
   },
   "auth": {
-    "providers": []
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/people/{personId}": {
-      "schema": {
-        "$ref": "#/entities/Person"
+    "structure": [
+      {
+        "path": "/users/{userId}/persons/{personId}",
+        "definition": {
+          "entityName": "Person",
+          "schema": {
+            "$ref": "#/backend/entities/Person"
+          },
+          "description": "Stores information about a person. Owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "personId",
+              "description": "The ID of the person."
+            }
+          ]
+        }
       },
-      "description": "Stores information about individual people."
-    },
-    "/cards/{cardId}": {
-      "schema": {
-        "$ref": "#/entities/Card"
+      {
+        "path": "/cards/{cardId}",
+        "definition": {
+          "entityName": "Card",
+          "schema": {
+            "$ref": "#/backend/entities/Card"
+          },
+          "description": "Stores information about credit cards. Available globally.",
+          "params": [
+            {
+              "name": "cardId",
+              "description": "The ID of the card."
+            }
+          ]
+        }
       },
-      "description": "Stores credit card details."
-    },
-    "/purchases/{purchaseId}": {
-      "schema": {
-        "$ref": "#/entities/Purchase"
+      {
+        "path": "/users/{userId}/purchaseInstallments/{purchaseInstallmentId}",
+        "definition": {
+          "entityName": "PurchaseInstallment",
+          "schema": {
+            "$ref": "#/backend/entities/PurchaseInstallment"
+          },
+          "description": "Stores purchase installment information for a specific user. Owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "purchaseInstallmentId",
+              "description": "The ID of the purchase installment."
+            }
+          ]
+        }
       },
-      "description": "Tracks installment purchases."
-    },
-    "/expenses/{expenseId}": {
-      "schema": {
-        "$ref": "#/entities/Expense"
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expense information for a specific user. Owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "expenseId",
+              "description": "The ID of the expense."
+            }
+          ]
+        }
       },
-      "description": "Tracks general expenses."
-    },
-    "/income/{incomeId}": {
-        "schema": {
-            "$ref": "#/entities/MonthlyIncome"
-        },
-        "description": "Stores monthly income records."
-    }
+      {
+        "path": "/users/{userId}/incomes/{incomeId}",
+        "definition": {
+          "entityName": "Income",
+          "schema": {
+            "$ref": "#/backend/entities/Income"
+          },
+          "description": "Stores income information for a specific user. Owned by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user."
+            },
+            {
+              "name": "incomeId",
+              "description": "The ID of the income."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to manage financial information, including persons, cards, purchase installments, expenses, and income. The structure prioritizes authorization independence and supports secure list operations by leveraging path-based ownership for user-specific data and dedicated collections for shared resources. User data such as Persons, Income and PurchaseInstallments will be stored under the `/users/{userId}` path.  Cards are global. This approach allows us to secure `list` operations by scoping them to the authenticated user's data. Authorization Independence is achieved, because only path-based ownership is used, without denormalization or membership maps.\n\nSegregation of concerns is applied by storing `cards` outside the `users` collection since it is shared among all users.\n\nThis design is simple and scalable and debuggable as it relies on path based rules."
   }
 }
