@@ -44,15 +44,16 @@ export function AppNav() {
         <SidebarMenu>
           {menuItems.map(({ href, label, icon: Icon }) => (
             <SidebarMenuItem key={href}>
-              <Link href={href} passHref legacyBehavior>
-                <SidebarMenuButton
-                  isActive={pathname === href}
-                  tooltip={label}
-                >
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === href}
+                tooltip={label}
+              >
+                <Link href={href}>
                   <Icon />
                   <span>{label}</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
