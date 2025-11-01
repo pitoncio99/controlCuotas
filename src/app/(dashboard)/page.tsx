@@ -4,36 +4,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
-import { purchases, expenses, cards, people } from "@/app/lib/data";
 import { DollarSign, CreditCard, Users, Cpu, MemoryStick, Server } from "lucide-react";
 import { format } from 'date-fns';
+import { useFirestore } from "@/firebase";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import type { Purchase, Expense, Card as CardType, Person } from "@/app/lib/definitions";
 
 export default function DashboardPage() {
-  const totalOutstanding = purchases.reduce((acc, p) => {
+  const firestore = useFirestore();
+  const { data: purchases, loading: purchasesLoading } = useCollection<Purchase>(firestore ? collection(firestore, 'purchases') : null);
+  const { data: expenses, loading: expensesLoading } = useCollection<Expense>(firestore ? collection(firestore, 'expenses') : null);
+  const { data: cards, loading: cardsLoading } = useCollection<CardType>(firestore ? collection(firestore, 'cards') : null);
+  const { data: people, loading: peopleLoading } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+
+  const totalOutstanding = purchases?.reduce((acc, p) => {
     const remainingInstallments = p.totalInstallments - p.installmentsPaid;
     return acc + remainingInstallments * p.amountPerInstallment;
-  }, 0);
+  }, 0) || 0;
 
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthlyExpenses = expenses
-    .filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonth)
-    .reduce((acc, e) => acc + e.amount, 0);
+    ?.filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonth)
+    .reduce((acc, e) => acc + e.amount, 0) || 0;
 
-  const monthlyInstallments = purchases.reduce((acc, p) => {
-    const dueDate = new Date(p.purchaseDate);
-    dueDate.setMonth(dueDate.getMonth() + p.installmentsPaid);
-    if (format(dueDate, 'yyyy-MM') === currentMonth) {
-        return acc + p.amountPerInstallment;
+  const monthlyInstallments = purchases?.reduce((acc, p) => {
+    const remainingInstallments = p.totalInstallments - p.installmentsPaid;
+    if (remainingInstallments > 0) {
+      // A simple approximation: assumes an installment is due this month if not fully paid.
+      return acc + p.amountPerInstallment;
     }
     return acc;
-  }, 0);
+  }, 0) || 0;
 
   const totalMonthlySpending = monthlyExpenses + monthlyInstallments;
   
-  const spendingByCard = cards.map(card => {
-    const cardPurchases = purchases.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.amountPerInstallment * (p.totalInstallments - p.installmentsPaid), 0);
+  const spendingByCard = cards?.map(card => {
+    const cardPurchases = purchases?.filter(p => p.cardId === card.id).reduce((acc, p) => acc + p.amountPerInstallment * (p.totalInstallments - p.installmentsPaid), 0) || 0;
     return { name: card.name, total: cardPurchases, fill: card.color };
-  });
+  }) || [];
 
   const chartConfig = {
     total: {
@@ -43,6 +52,12 @@ export default function DashboardPage() {
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value);
+  }
+  
+  const isLoading = purchasesLoading || expensesLoading || cardsLoading || peopleLoading;
+
+  if (isLoading) {
+    return <div>Cargando...</div>;
   }
 
   return (
@@ -74,7 +89,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{people.length}</div>
+            <div className="text-2xl font-bold">+{people?.length || 0}</div>
             <p className="text-xs text-muted-foreground">Total de personas en el sistema.</p>
           </CardContent>
         </Card>

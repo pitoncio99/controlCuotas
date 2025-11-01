@@ -7,13 +7,28 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { people } from '@/app/lib/data';
 import type { Person } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { PersonForm } from './components/person-form';
-
+import { useFirestore } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, doc, deleteDoc } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function PeoplePage() {
+  const firestore = useFirestore();
+  const { data: people, loading } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | undefined>(undefined);
 
@@ -31,6 +46,13 @@ export default function PeoplePage() {
     setSheetOpen(false);
     setEditingPerson(undefined);
   };
+
+  const handleDelete = async (id: string) => {
+    if (firestore) {
+      await deleteDoc(doc(firestore, 'people', id));
+    }
+  };
+
 
   return (
     <>
@@ -54,7 +76,12 @@ export default function PeoplePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {people.map((person) => (
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center">Cargando...</TableCell>
+                </TableRow>
+              )}
+              {!loading && (people || []).map((person) => (
                 <TableRow key={person.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -74,7 +101,23 @@ export default function PeoplePage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(person)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Esto eliminará permanentemente a la persona.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(person.id)}>Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

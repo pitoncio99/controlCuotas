@@ -8,6 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Card } from '@/app/lib/definitions';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   name: z.string().min(2, {
@@ -24,22 +26,44 @@ interface CardFormProps {
 }
 
 export function CardForm({ card, onSave }: CardFormProps) {
+  const firestore = useFirestore();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       name: card?.name || '',
-      color: card?.color || '#',
+      color: card?.color || '#000000',
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'Guardado',
-      description: `La tarjeta "${data.name}" ha sido guardada.`,
-    });
-    // Here you would typically call an API to save the data
-    console.log(data);
-    onSave();
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    if (!firestore) return;
+    
+    try {
+      if (card?.id) {
+        // Update existing card
+        const cardRef = doc(firestore, 'cards', card.id);
+        await setDoc(cardRef, data, { merge: true });
+        toast({
+          title: 'Tarjeta Actualizada',
+          description: `La tarjeta "${data.name}" ha sido actualizada.`,
+        });
+      } else {
+        // Add new card
+        await addDoc(collection(firestore, 'cards'), data);
+        toast({
+          title: 'Tarjeta Agregada',
+          description: `La tarjeta "${data.name}" ha sido agregada.`,
+        });
+      }
+      onSave();
+    } catch (error) {
+      console.error("Error saving card: ", error);
+      toast({
+        variant: "destructive",
+        title: 'Error',
+        description: 'No se pudo guardar la tarjeta.',
+      });
+    }
   }
 
   return (

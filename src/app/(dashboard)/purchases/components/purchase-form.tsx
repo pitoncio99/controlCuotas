@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -13,8 +13,10 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
-import { cards, people } from '@/app/lib/data';
-import type { Purchase } from '@/app/lib/definitions';
+import type { Purchase, Card, Person } from '@/app/lib/definitions';
+import { useFirestore } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   description: z.string().min(2, {
@@ -38,12 +40,16 @@ interface PurchaseFormProps {
 }
 
 export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
+  const firestore = useFirestore();
+  const { data: cards } = useCollection<Card>(firestore ? collection(firestore, 'cards') : null);
+  const { data: people } = useCollection<Person>(firestore ? collection(firestore, 'people') : null);
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       description: purchase?.description || '',
-      personId: purchase?.personId || '',
-      cardId: purchase?.cardId || '',
+      personId: purchase?.personId || undefined,
+      cardId: purchase?.cardId || undefined,
       amountPerInstallment: purchase?.amountPerInstallment || 0,
       installmentsPaid: purchase?.installmentsPaid || 0,
       totalInstallments: purchase?.totalInstallments || 1,
@@ -51,14 +57,37 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'Guardado',
-      description: `La compra "${data.description}" ha sido guardada.`,
-    });
-    // Here you would typically call an API to save the data
-    console.log({ ...data, purchaseDate: data.purchaseDate.toISOString() });
-    onSave();
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    if (!firestore) return;
+
+    const purchaseData = {
+      ...data,
+      purchaseDate: data.purchaseDate.toISOString(),
+    };
+
+    try {
+      if (purchase?.id) {
+        await setDoc(doc(firestore, 'purchases', purchase.id), purchaseData, { merge: true });
+        toast({
+          title: 'Compra Actualizada',
+          description: `La compra "${data.description}" ha sido actualizada.`,
+        });
+      } else {
+        await addDoc(collection(firestore, 'purchases'), purchaseData);
+        toast({
+          title: 'Compra Guardada',
+          description: `La compra "${data.description}" ha sido guardada.`,
+        });
+      }
+      onSave();
+    } catch (error) {
+      console.error("Error saving purchase: ", error);
+      toast({
+        variant: "destructive",
+        title: 'Error',
+        description: 'No se pudo guardar la compra.',
+      });
+    }
   }
 
   return (
@@ -91,7 +120,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {people.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -111,7 +140,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {cards.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {(cards || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -127,7 +156,7 @@ export function PurchaseForm({ purchase, onSave }: PurchaseFormProps) {
                 <FormItem>
                   <FormLabel>Monto por Cuota</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} />
+                    <Input type="number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

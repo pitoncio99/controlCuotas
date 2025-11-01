@@ -6,12 +6,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { cards } from '@/app/lib/data';
 import type { Card as CardType } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CardForm } from './components/card-form';
+import { useFirestore } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, doc, deleteDoc } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function CardsPage() {
+  const firestore = useFirestore();
+  const { data: cards, loading } = useCollection<CardType>(firestore ? collection(firestore, 'cards') : null);
+
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardType | undefined>(undefined);
 
@@ -28,6 +44,12 @@ export default function CardsPage() {
   const handleSheetClose = () => {
     setSheetOpen(false);
     setEditingCard(undefined);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (firestore) {
+      await deleteDoc(doc(firestore, 'cards', id));
+    }
   };
 
   return (
@@ -52,7 +74,12 @@ export default function CardsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cards.map((card) => (
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center">Cargando...</TableCell>
+                </TableRow>
+              )}
+              {!loading && (cards || []).map((card) => (
                 <TableRow key={card.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -69,7 +96,23 @@ export default function CardsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(card)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Eliminar</DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Esto eliminará permanentemente la tarjeta.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(card.id)}>Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

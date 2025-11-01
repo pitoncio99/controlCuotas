@@ -8,6 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Person } from '@/app/lib/definitions';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   name: z.string().min(2, {
@@ -22,6 +24,7 @@ interface PersonFormProps {
 }
 
 export function PersonForm({ person, onSave }: PersonFormProps) {
+  const firestore = useFirestore();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -30,14 +33,32 @@ export function PersonForm({ person, onSave }: PersonFormProps) {
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'Guardado',
-      description: `La persona "${data.name}" ha sido guardada.`,
-    });
-    // Here you would typically call an API to save the data
-    console.log(data);
-    onSave();
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    if (!firestore) return;
+
+    try {
+      if (person?.id) {
+        await setDoc(doc(firestore, 'people', person.id), data, { merge: true });
+        toast({
+          title: 'Persona Actualizada',
+          description: `La persona "${data.name}" ha sido actualizada.`,
+        });
+      } else {
+        await addDoc(collection(firestore, 'people'), data);
+        toast({
+          title: 'Persona Agregada',
+          description: `La persona "${data.name}" ha sido agregada.`,
+        });
+      }
+      onSave();
+    } catch (error) {
+      console.error("Error saving person: ", error);
+      toast({
+        variant: "destructive",
+        title: 'Error',
+        description: 'No se pudo guardar la persona.',
+      });
+    }
   }
 
   return (

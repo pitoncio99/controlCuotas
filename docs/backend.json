@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "Person": {
+      "title": "Person",
+      "description": "A person who can be associated with a purchase.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the person."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "URL of the person's avatar image.",
+          "format": "uri"
+        }
+      },
+      "required": ["name"]
+    },
+    "Card": {
+      "title": "Card",
+      "description": "A credit card used for purchases.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the card."
+        },
+        "color": {
+          "type": "string",
+          "description": "A hex color code to represent the card."
+        }
+      },
+      "required": ["name", "color"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "A purchase made with installments.",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "cardId": {
+          "type": "string"
+        },
+        "personId": {
+          "type": "string"
+        },
+        "amountPerInstallment": {
+          "type": "number"
+        },
+        "installmentsPaid": {
+          "type": "number"
+        },
+        "totalInstallments": {
+          "type": "number"
+        },
+        "purchaseDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["description", "cardId", "personId", "amountPerInstallment", "installmentsPaid", "totalInstallments", "purchaseDate"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "A general, independent expense.",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["description", "amount", "date"]
+    },
+    "MonthlyIncome": {
+        "title": "Monthly Income",
+        "description": "Tracks the total income for a specific month.",
+        "type": "object",
+        "properties": {
+            "month": {
+                "type": "string",
+                "description": "The month in YYYY-MM format."
+            },
+            "amount": {
+                "type": "number",
+                "description": "The income amount for the month."
+            }
+        },
+        "required": ["month", "amount"]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/people/{personId}": {
+      "schema": {
+        "$ref": "#/entities/Person"
+      },
+      "description": "Stores information about individual people."
+    },
+    "/cards/{cardId}": {
+      "schema": {
+        "$ref": "#/entities/Card"
+      },
+      "description": "Stores credit card details."
+    },
+    "/purchases/{purchaseId}": {
+      "schema": {
+        "$ref": "#/entities/Purchase"
+      },
+      "description": "Tracks installment purchases."
+    },
+    "/expenses/{expenseId}": {
+      "schema": {
+        "$ref": "#/entities/Expense"
+      },
+      "description": "Tracks general expenses."
+    },
+    "/income/{incomeId}": {
+        "schema": {
+            "$ref": "#/entities/MonthlyIncome"
+        },
+        "description": "Stores monthly income records."
+    }
+  }
+}

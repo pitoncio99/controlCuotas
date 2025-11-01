@@ -1,7 +1,7 @@
 export type Person = {
   id: string;
   name: string;
-  avatar: string;
+  avatar?: string;
 };
 
 export type Card = {
@@ -18,7 +18,6 @@ export type Purchase = {
   amountPerInstallment: number;
   installmentsPaid: number;
   totalInstallments: number;
-  paymentDay: number;
   purchaseDate: string; // ISO date string
 };
 

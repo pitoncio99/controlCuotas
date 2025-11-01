@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import type { Expense } from '@/app/lib/definitions';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 
 const FormSchema = z.object({
   description: z.string().min(2, {
@@ -32,6 +34,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
+  const firestore = useFirestore();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -41,14 +44,37 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'Guardado',
-      description: `El gasto "${data.description}" ha sido guardado.`,
-    });
-    // Here you would typically call an API to save the data
-    console.log({ ...data, date: data.date.toISOString() });
-    onSave();
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    if (!firestore) return;
+
+    const expenseData = {
+      ...data,
+      date: data.date.toISOString(),
+    };
+
+    try {
+      if (expense?.id) {
+        await setDoc(doc(firestore, 'expenses', expense.id), expenseData, { merge: true });
+        toast({
+          title: 'Gasto Actualizado',
+          description: `El gasto "${data.description}" ha sido actualizado.`,
+        });
+      } else {
+        await addDoc(collection(firestore, 'expenses'), expenseData);
+        toast({
+          title: 'Gasto Guardado',
+          description: `El gasto "${data.description}" ha sido guardado.`,
+        });
+      }
+      onSave();
+    } catch (error) {
+       console.error("Error saving expense: ", error);
+       toast({
+        variant: "destructive",
+        title: 'Error',
+        description: 'No se pudo guardar el gasto.',
+      });
+    }
   }
 
   return (
@@ -74,7 +100,7 @@ export function ExpenseForm({ expense, onSave }: ExpenseFormProps) {
             <FormItem>
               <FormLabel>Monto</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="ej., 15.99" {...field} />
+                <Input type="number" placeholder="ej., 9590" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
