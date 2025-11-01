@@ -104,17 +104,19 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-            <div>
-              <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
-               <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
-                <SelectTrigger className="w-full sm:w-[150px] h-8 mt-2 text-xs">
-                  <SelectValue placeholder="Filtrar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las personas</SelectItem>
-                  {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="w-full">
+               <div className="flex items-center gap-2 mb-2">
+                <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
+                 <Select onValueChange={(value) => setFilterPersonId(value === 'all' ? '' : value)} defaultValue="all">
+                  <SelectTrigger className="w-auto h-7 text-xs border-dashed">
+                    <SelectValue placeholder="Filtrar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las personas</SelectItem>
+                    {(people || []).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+               </div>
             </div>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
