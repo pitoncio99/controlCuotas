@@ -13,6 +13,10 @@
         "name": {
           "type": "string",
           "description": "The name of the person."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the person's avatar."
         }
       },
       "required": [
@@ -150,8 +154,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -249,6 +252,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to address the 'auth/operation-not-allowed' error, which typically indicates that email/password authentication is not enabled in the Firebase project. While this is an authentication issue (outside of Firestore), the provided data structure will enable scalable and secure data management once the auth method is enabled.\n\nThe structure prioritizes Authorization Independence by avoiding `get()` calls in security rules. This is achieved via:\n\n1.  **Path-Based Ownership:** The `budgets`, `expenses`, and `purchaseInstallments` collections are nested under `/users/{userId}`. This directly associates data with the user and simplifies ownership-based rules.\n2.  **Denormalization (if needed in the future):** If cross-user access to purchase installments or expenses is required in the future (e.g., shared budgets), the `members` map (with user roles) can be denormalized into these documents. This would eliminate the need for `get()` calls to check group membership.\n\nQAPs (Rules are not Filters) are supported by:\n\n1.  **Structural Segregation:** Each collection contains homogeneous data with consistent security requirements. This avoids mixing public and private data in the same collection, allowing for secure `list` operations. For example, all documents in `/users/{userId}/expenses` are private to that user.\n\nThe data structure also ensures data clarity and predictability through explicit state modeling (though not explicitly in the provided schemas), semantic naming conventions, and predictable schema. For example, each collection uses IDs in the document path. Using consistent naming conventions for authorization fields (e.g., `ownerId`) would further enhance clarity."
+    "reasoning": "The Firestore structure is designed to address the 'auth/operation-not-allowed' error, which typically indicates that email/password authentication is not enabled in the Firebase project. While this is an authentication issue (outside of Firestore), the provided data structure will enable scalable and secure data management once the auth method is enabled.\n\nThe structure prioritizes Authorization Independence by avoiding `get()` calls in security rules. This is achieved via:\n\n1.  **Path-Based Ownership:** The `budgets`, `expenses`, and `purchaseInstallments` collections are nested under `/users/{userId}`. This directly associates data with the user and simplifies ownership-based rules.\n2.  **Denormalization (if needed in the future):** If cross-user access to purchase installments or expenses is required in the future (e.g., shared budgets), the `members` map (with user roles) can be denormalized into these documents. This would eliminate the need for `get()` calls to check group membership.\n\nQAPs (Rules are not Filters) are supported by:\n\n1.  **Structural Segregation:** Each collection contains homogeneous data with consistent security requirements. This avoids mixing public and private data in the same collection, allowing for secure `list` operations. For example, all documents in `/users/{userId}/expenses` are private to that user.\n\nThe data structure also ensures data clarity and predictability through explicit state modeling (though not explicitly in the provided schemas), semantic naming conventions, and predictable schema. For example, cada colección usa ID en la ruta del documento. Usar convenciones de nomenclatura consistentes para los campos de autorización (por ejemplo, `ownerId`) mejoraría aún más la claridad."
   }
 }
