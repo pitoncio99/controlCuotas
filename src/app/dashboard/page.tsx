@@ -77,12 +77,14 @@ export default function DashboardPage() {
     const filteredPurchases = filterPersonId ? purchases?.filter(p => p.personId === filterPersonId) : purchases;
     
     return cards?.map(card => {
-      const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => {
-        const remainingInstallments = p.totalInstallments - p.paidInstallments;
-        return acc + remainingInstallments * p.installmentAmount;
-      }, 0) || 0;
-      return { name: card.name, total: cardPurchases, fill: card.color };
-    }) || [];
+        const cardPurchases = filteredPurchases?.filter(p => p.cardId === card.id).reduce((acc, p) => {
+          const remainingInstallments = p.totalInstallments - p.paidInstallments;
+          return acc + remainingInstallments * p.installmentAmount;
+        }, 0) || 0;
+        return { name: card.name, total: cardPurchases, fill: card.color };
+      })
+      .filter(card => card.total > 0) // Only include cards with a total debt > 0
+    || [];
   }, [cards, purchases, filterPersonId]);
 
 
