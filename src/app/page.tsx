@@ -12,9 +12,7 @@ export default function RootPage() {
       if (user) {
         router.replace('/dashboard');
       } else {
-        // This case should be handled by the anonymous sign-in in the provider
-        // but as a fallback, we can redirect to a loading/error or stay here.
-        // For now, we assume anonymous sign-in will work.
+        router.replace('/login');
       }
     }
   }, [user, isUserLoading, router]);
