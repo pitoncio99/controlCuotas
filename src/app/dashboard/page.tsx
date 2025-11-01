@@ -133,17 +133,19 @@ export default function DashboardPage() {
 
         <div className="grid gap-6 md:grid-cols-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-muted-foreground" />
                 <CardTitle className="text-sm font-medium">Ingreso Mensual</CardTitle>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)}>
+                  <Pencil className="h-4 w-4" />
+              </Button>
             </CardHeader>
-            <CardContent className="flex items-center justify-between">
-                <div className="text-2xl font-bold flex items-center gap-2">
-                    <Wallet className="h-6 w-6 text-muted-foreground" />
+            <CardContent>
+                <div className="text-2xl font-bold">
                     {formatCurrency(monthlyIncomeAmount)}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)}>
-                    <Pencil className="h-4 w-4" />
-                </Button>
             </CardContent>
           </Card>
           <Card>
