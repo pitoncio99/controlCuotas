@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal, ChevronUp, ChevronDown } from "lucide-react";
@@ -25,6 +25,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { addMonths, format } from 'date-fns';
 
 
 type ProgressUpdateAction = {
@@ -118,6 +119,10 @@ export default function PurchasesPage() {
       return personMatch && cardMatch;
     });
   }, [purchases, filterPersonId, filterCardId]);
+
+  const totalFilteredInstallmentAmount = useMemo(() => {
+    return filteredPurchases.reduce((acc, purchase) => acc + purchase.installmentAmount, 0);
+  }, [filteredPurchases]);
 
   return (
     <>
@@ -227,6 +232,13 @@ export default function PurchasesPage() {
                   )
                 })}
               </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-right font-bold">Total Mensual Filtrado</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(totalFilteredInstallmentAmount)}</TableCell>
+                  <TableCell colSpan={3}></TableCell>
+                </TableRow>
+              </TableFooter>
             </Table>
           </TooltipProvider>
         </CardContent>
