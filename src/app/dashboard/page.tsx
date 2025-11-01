@@ -99,10 +99,10 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total tarjetas</CardTitle>
+            <CardTitle className="text-sm font-medium">Total General Tarjetas</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -118,18 +118,9 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalMonthlySpending)}</div>
              <p className="text-xs text-muted-foreground">
-              {formatCurrency(currentMonthInstallments)} (Cuotas) + {formatCurrency(totalMonthlyFixedExpenses)} (Gastos Fijos)
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Cuotas: {formatCurrency(currentMonthInstallments)}</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>Gastos Fijos: {formatCurrency(totalMonthlyFixedExpenses)}</span>
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Deuda Consolidada</CardTitle>
-            <WalletCards className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding + totalMonthlyFixedExpenses)}</div>
-            <p className="text-xs text-muted-foreground">Total tarjetas + gastos fijos.</p>
           </CardContent>
         </Card>
       </div>
