@@ -33,7 +33,7 @@ export default function PurchasesPage() {
   const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
 
-  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
   const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);

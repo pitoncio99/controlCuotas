@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import type { Card as CardType } from '@/app/lib/definitions';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CardForm } from './components/card-form';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -24,7 +24,8 @@ import {
 
 export default function CardsPage() {
   const firestore = useFirestore();
-  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const { user } = useUser();
+  const cardsCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/cards`) : null, [firestore, user]);
   const { data: cards, isLoading } = useCollection<CardType>(cardsCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -48,8 +49,8 @@ export default function CardsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (firestore && deletingCard) {
-      deleteDocumentNonBlocking(doc(firestore, 'cards', deletingCard.id));
+    if (firestore && user && deletingCard) {
+      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/cards`, deletingCard.id));
     }
     setDeletingCard(undefined);
   };

@@ -20,10 +20,10 @@ export default function DashboardPage() {
   const expensesCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/expenses`) : null, [firestore, user]);
   const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesCollection);
 
-  const cardsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'cards') : null, [firestore]);
+  const cardsCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/cards`) : null, [firestore, user]);
   const { data: cards, isLoading: cardsLoading } = useCollection<CardType>(cardsCollection);
 
-  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
   const { data: people, isLoading: peopleLoading } = useCollection<Person>(peopleCollection);
 
   const totalOutstanding = purchases?.reduce((acc, p) => {

@@ -26,7 +26,7 @@ import {
 export default function PeoplePage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/persons`) : null, [firestore, user]);
+  const peopleCollection = useMemoFirebase(() => firestore && user ? collection(firestore, `users/${user.uid}/people`) : null, [firestore, user]);
   const { data: people, isLoading } = useCollection<Person>(peopleCollection);
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -50,7 +50,7 @@ export default function PeoplePage() {
 
   const handleDelete = () => {
     if (firestore && user && deletingPerson) {
-      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/persons`, deletingPerson.id));
+      deleteDocumentNonBlocking(doc(firestore, `users/${user.uid}/people`, deletingPerson.id));
     }
     setDeletingPerson(undefined);
   };
